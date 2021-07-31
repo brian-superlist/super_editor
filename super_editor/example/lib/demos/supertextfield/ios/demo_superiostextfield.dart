@@ -15,7 +15,7 @@ class _SuperIOSTextfieldDemoState extends State<SuperIOSTextfieldDemo> {
           text:
               'This is a custom textfield implementation called SuperIOSTextfield. It is super long so that we can mess with scrolling. This drags it out even further so that we can get multiline scrolling, too. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin tempor sapien est, in eleifend purus rhoncus fringilla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nulla varius libero lorem, eget tincidunt ante porta accumsan. Morbi quis ante at nunc molestie ullamcorper.'));
 
-  TextFieldSizeMode _sizeMode = TextFieldSizeMode.short;
+  _TextFieldSizeMode _sizeMode = _TextFieldSizeMode.short;
 
   bool _showDebugPaint = false;
 
@@ -70,9 +70,9 @@ class _SuperIOSTextfieldDemoState extends State<SuperIOSTextfieldDemo> {
         child: const Icon(Icons.bug_report),
       ),
       bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _sizeMode == TextFieldSizeMode.singleLine
+        currentIndex: _sizeMode == _TextFieldSizeMode.singleLine
             ? 0
-            : _sizeMode == TextFieldSizeMode.short
+            : _sizeMode == _TextFieldSizeMode.short
                 ? 1
                 : 2,
         items: const [
@@ -92,11 +92,11 @@ class _SuperIOSTextfieldDemoState extends State<SuperIOSTextfieldDemo> {
         onTap: (int newIndex) {
           setState(() {
             if (newIndex == 0) {
-              _sizeMode = TextFieldSizeMode.singleLine;
+              _sizeMode = _TextFieldSizeMode.singleLine;
             } else if (newIndex == 1) {
-              _sizeMode = TextFieldSizeMode.short;
+              _sizeMode = _TextFieldSizeMode.short;
             } else if (newIndex == 2) {
-              _sizeMode = TextFieldSizeMode.tall;
+              _sizeMode = _TextFieldSizeMode.tall;
             }
           });
         },
@@ -108,14 +108,14 @@ class _SuperIOSTextfieldDemoState extends State<SuperIOSTextfieldDemo> {
     int? minLines;
     int? maxLines;
     switch (_sizeMode) {
-      case TextFieldSizeMode.singleLine:
+      case _TextFieldSizeMode.singleLine:
         minLines = 1;
         maxLines = 1;
         break;
-      case TextFieldSizeMode.short:
+      case _TextFieldSizeMode.short:
         maxLines = 5;
         break;
-      case TextFieldSizeMode.tall:
+      case _TextFieldSizeMode.tall:
         // no-op
         break;
     }
@@ -146,7 +146,7 @@ class _SuperIOSTextfieldDemoState extends State<SuperIOSTextfieldDemo> {
   }
 }
 
-enum TextFieldSizeMode {
+enum _TextFieldSizeMode {
   singleLine,
   short,
   tall,
