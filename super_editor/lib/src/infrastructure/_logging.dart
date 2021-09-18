@@ -4,6 +4,7 @@ class LogNames {
   static const editor = 'editor';
 
   static const textField = 'textfield';
+  static const imeTextField = 'textfield.ime';
   static const androidTextField = 'textfield.android';
   static const iosTextField = 'textfield.ios';
 
@@ -14,6 +15,7 @@ class LogNames {
 final editorLog = logging.Logger(LogNames.editor);
 
 final textFieldLog = logging.Logger(LogNames.textField);
+final imeTextFieldLog = logging.Logger(LogNames.imeTextField);
 final androidTextFieldLog = logging.Logger(LogNames.androidTextField);
 final iosTextFieldLog = logging.Logger(LogNames.iosTextField);
 

@@ -575,7 +575,9 @@ class AttributedSpans {
         _log.fine('Removing markers:');
         _log.fine(' - $startMarker');
         _log.fine(' - $endMarker');
-        attributions..remove(startMarker)..remove(endMarker);
+        attributions
+          ..remove(startMarker)
+          ..remove(endMarker);
       }
     }
   }

@@ -533,6 +533,7 @@ class TextScrollController with ChangeNotifier {
     } else if (_delegate!.isInAutoScrollToEndRegion(userInteractionOffsetInViewport)) {
       startScrollingToEnd();
     } else {
+      print('stopScrolling() from updateAutoScrollingForTouchOffset()');
       stopScrolling();
     }
   }
@@ -579,6 +580,9 @@ class TextScrollController with ChangeNotifier {
 
   /// Stops any auto-scrolling that is currently in progress.
   void stopScrolling() {
+    if (_autoScrollDirection == null) {
+      return;
+    }
     _log.fine('stopping auto-scroll');
     _autoScrollDirection = null;
     _timeOfNextAutoScroll = Duration.zero;

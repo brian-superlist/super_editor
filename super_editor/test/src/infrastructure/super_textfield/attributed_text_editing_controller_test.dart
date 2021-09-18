@@ -132,26 +132,6 @@ void main() {
         );
       });
 
-      test('into middle of styled text', () {
-        final controller = AttributedTextEditingController(
-          text: AttributedText(
-            text: '[]:unstyled text',
-            spans: AttributedSpans(
-              attributions: [
-                const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
-                const SpanMarker(attribution: boldAttribution, offset: 2, markerType: SpanMarkerType.end),
-              ],
-            ),
-          ),
-        );
-        controller.insert(newText: 'newtext', insertIndex: 1);
-
-        expect(controller.text.text, equals('[newtext]:unstyled text'));
-        ExpectedSpans([
-          'bbbbbbbbb______________',
-        ]).expectSpans(controller.text.spans);
-      });
-
       test('into middle of text with caret at insertion', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(
@@ -212,6 +192,66 @@ void main() {
           ),
         );
       });
+
+      test('before styled text - the style is not extended', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: '[]:unstyled text',
+            spans: AttributedSpans(
+              attributions: [
+                const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+                const SpanMarker(attribution: boldAttribution, offset: 2, markerType: SpanMarkerType.end),
+              ],
+            ),
+          ),
+        );
+        controller.insert(newText: 'newtext', insertIndex: 0);
+
+        expect(controller.text.text, equals('newtext[]:unstyled text'));
+        ExpectedSpans([
+          '_______bb______________',
+        ]).expectSpans(controller.text.spans);
+      });
+
+      test('into middle of styled text - the style is extended', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: '[]:unstyled text',
+            spans: AttributedSpans(
+              attributions: [
+                const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+                const SpanMarker(attribution: boldAttribution, offset: 2, markerType: SpanMarkerType.end),
+              ],
+            ),
+          ),
+        );
+        controller.insert(newText: 'newtext', insertIndex: 1);
+
+        expect(controller.text.text, equals('[newtext]:unstyled text'));
+        ExpectedSpans([
+          'bbbbbbbbb______________',
+        ]).expectSpans(controller.text.spans);
+      });
+
+      test('after styled text - the style is extended', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: '[]:unstyled text',
+            spans: AttributedSpans(
+              attributions: [
+                const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+                const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.end),
+              ],
+            ),
+          ),
+        );
+        controller.insert(newText: 'newtext', insertIndex: 1);
+
+        expect(controller.text.text, equals('[newtext]:unstyled text'));
+        ExpectedSpans([
+          'bbbbbbbb_______________',
+        ]).expectSpans(controller.text.spans);
+      });
     });
 
     group('replace', () {
@@ -219,7 +259,7 @@ void main() {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: ':existing text'),
         );
-        controller.replace(newText: 'newtext', from: 0, to: 0);
+        controller.replace(newText: AttributedText(text: 'newtext'), from: 0, to: 0);
 
         expect(controller.text.text, equals('newtext:existing text'));
       });
@@ -232,7 +272,7 @@ void main() {
             extentOffset: 1,
           ),
         );
-        controller.replace(newText: 'newtext', from: 0, to: 0);
+        controller.replace(newText: AttributedText(text: 'newtext'), from: 0, to: 0);
 
         expect(controller.text.text, equals('newtext:existing text'));
         expect(
@@ -248,7 +288,7 @@ void main() {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: 'deleteme:existing text'),
         );
-        controller.replace(newText: '', from: 0, to: 8);
+        controller.replace(newText: AttributedText(text: ''), from: 0, to: 8);
 
         expect(controller.text.text, equals(':existing text'));
       });
@@ -257,7 +297,7 @@ void main() {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: 'replaceme:existing text'),
         );
-        controller.replace(newText: 'newtext', from: 0, to: 9);
+        controller.replace(newText: AttributedText(text: 'newtext'), from: 0, to: 9);
 
         expect(controller.text.text, equals('newtext:existing text'));
       });
@@ -266,7 +306,7 @@ void main() {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: 'existing text:replaceme'),
         );
-        controller.replace(newText: 'newtext', from: 14, to: 23);
+        controller.replace(newText: AttributedText(text: 'newtext'), from: 14, to: 23);
 
         expect(controller.text.text, equals('existing text:newtext'));
       });
@@ -275,9 +315,39 @@ void main() {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: '[replaceme]'),
         );
-        controller.replace(newText: 'newtext', from: 1, to: 10);
+        controller.replace(newText: AttributedText(text: 'newtext'), from: 1, to: 10);
 
         expect(controller.text.text, equals('[newtext]'));
+      });
+
+      test('in middle of styled text with new styled text', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: '[replaceme]',
+            spans: AttributedSpans(
+              attributions: [
+                const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+                const SpanMarker(attribution: boldAttribution, offset: 10, markerType: SpanMarkerType.end),
+              ],
+            ),
+          ),
+        );
+        final newText = AttributedText(
+          text: 'newtext',
+          spans: AttributedSpans(
+            attributions: [
+              const SpanMarker(attribution: italicsAttribution, offset: 0, markerType: SpanMarkerType.start),
+              const SpanMarker(attribution: italicsAttribution, offset: 6, markerType: SpanMarkerType.end),
+            ],
+          ),
+        );
+        controller.replace(newText: newText, from: 1, to: 10);
+
+        expect(controller.text.text, equals('[newtext]'));
+
+        ExpectedSpans([
+          'biiiiiiib',
+        ]).expectSpans(controller.text.spans);
       });
     });
 

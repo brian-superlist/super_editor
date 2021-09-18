@@ -60,9 +60,46 @@ class AttributedText with ChangeNotifier {
     );
   }
 
+  /// Returns true if this [AttributedText] contains each of the
+  /// given [attributions] throughout the given [range] (inclusive).
+  bool hasAttributionsThroughout({
+    required Set<Attribution> attributions,
+    required TextRange range,
+  }) {
+    for (int i = range.start; i <= range.end; i += 1) {
+      for (final attribution in attributions) {
+        if (!spans.hasAttributionAt(i, attribution: attribution)) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   /// Returns all attributions applied to the given [offset].
   Set<Attribution> getAllAttributionsAt(int offset) {
     return spans.getAllAttributionsAt(offset);
+  }
+
+  /// Returns all attributions that appear throughout the entirety
+  /// of the given [range].
+  Set<Attribution> getAllAttributionsThroughout(TextRange range) {
+    final attributionsThroughout = spans.getAllAttributionsAt(range.start);
+    int index = range.start + 1;
+
+    while (index <= range.end && attributionsThroughout.isNotEmpty) {
+      final missingAttributions = <Attribution>{};
+      for (final attribution in attributionsThroughout) {
+        if (!hasAttributionAt(index)) {
+          missingAttributions.add(attribution);
+        }
+      }
+      attributionsThroughout.removeAll(missingAttributions);
+      index += 1;
+    }
+
+    return attributionsThroughout;
   }
 
   /// Returns spans for each attribution that (at least partially) appear
@@ -102,6 +139,23 @@ class AttributedText with ChangeNotifier {
   void removeAttribution(Attribution attribution, TextRange range) {
     spans.removeAttribution(attributionToRemove: attribution, start: range.start, end: range.end);
     notifyListeners();
+  }
+
+  /// Removes all attributions within the given [range].
+  void clearAttributions(TextRange range) {
+    // TODO: implement this capability within AttributedSpans
+    //       This implementation uses existing round-about functionality
+    //       to avoid adding new complexity to AttributedSpans while
+    //       working on unrelated behavior (mobile text fields - Sept 17, 2021).
+    //       Come back and implement clearAttributions in AttributedSpans
+    //       in an efficient manner and add tests for it.
+    final attributions = <Attribution>{};
+    for (var i = range.start; i <= range.end; i += 1) {
+      attributions.addAll(spans.getAllAttributionsAt(i));
+    }
+    for (final attribution in attributions) {
+      spans.removeAttribution(attributionToRemove: attribution, start: range.start, end: range.end);
+    }
   }
 
   /// If ALL of the text in [range], inclusive, contains the given [attribution],
@@ -161,6 +215,18 @@ class AttributedText with ChangeNotifier {
       text: text + other.text,
       spans: newSpans,
     );
+  }
+
+  /// Returns a copy of this [AttributedText] with [textToInsert] inserted
+  /// at [startOffset], retaining whatever attributions are already applied
+  /// to [textToInsert].
+  AttributedText insert({
+    required AttributedText textToInsert,
+    required int startOffset,
+  }) {
+    final startText = copyText(0, startOffset);
+    final endText = copyText(startOffset);
+    return startText.copyAndAppend(textToInsert).copyAndAppend(endText);
   }
 
   /// Returns a copy of this [AttributedText] with [textToInsert]

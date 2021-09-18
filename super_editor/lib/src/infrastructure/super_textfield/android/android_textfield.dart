@@ -271,7 +271,7 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
   }
 
   void _onTextChanged() {
-    print('_onTextChanged: selection: ${_textEditingController.selection}');
+    _log.fine('_onTextChanged: selection: ${_textEditingController.selection}');
     if (_textEditingController.selection.isCollapsed) {
       _editingOverlayController.hideToolbar();
     }
@@ -322,9 +322,8 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
   }
 
   void _sendEditingValueToPlatform() {
-    if (_textInputConnection != null &&
-        _textInputConnection!.attached &&
-        _latestPlatformTextEditingValue != currentTextEditingValue) {
+    if (_textInputConnection != null && _textInputConnection!.attached) {
+      _log.fine('Sending TextEditingValue to platform: $currentTextEditingValue');
       _textInputConnection!.setEditingState(currentTextEditingValue!);
     }
   }
@@ -395,15 +394,15 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
         case TextEditingDeltaType.deletion:
           _textEditingController.delete(
             from: delta.deltaRange.start,
-            to: delta.deltaRange.end + 1,
+            to: delta.deltaRange.end,
             newSelection: delta.selection,
           );
           break;
         case TextEditingDeltaType.replacement:
           _textEditingController.replace(
-            newText: delta.deltaText,
+            newText: AttributedText(text: delta.deltaText),
             from: delta.deltaRange.start,
-            to: delta.deltaRange.end + 1,
+            to: delta.deltaRange.end,
             newSelection: delta.selection,
           );
           break;
@@ -460,10 +459,12 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
               builder: (context) {
                 final styleBuilder =
                     _textEditingController.text.text.isNotEmpty ? widget.textStyleBuilder : widget.hintTextStyleBuilder;
+                print('styleBuilder: $styleBuilder');
 
                 final textSpan = _textEditingController.text.text.isNotEmpty
                     ? _textEditingController.text.computeTextSpan(styleBuilder)
                     : widget.hintText?.computeTextSpan(widget.hintTextStyleBuilder) ?? const TextSpan();
+                print('Text span: ${textSpan.children}');
 
                 final emptyTextCaretHeight =
                     (widget.textStyleBuilder({}).fontSize ?? 0.0) * (widget.textStyleBuilder({}).height ?? 1.0);

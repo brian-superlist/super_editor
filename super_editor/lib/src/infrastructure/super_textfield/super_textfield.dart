@@ -1457,17 +1457,19 @@ class AttributedTextEditingController with ChangeNotifier {
     required AttributedText text,
     required TextSelection selection,
   }) {
-    this.text = text;
-    this.selection = selection;
+    _switchText(text);
+    _selection = selection;
+
+    _updateComposingAttributions();
+
+    notifyListeners();
   }
 
   AttributedText _text;
   AttributedText get text => _text;
   set text(AttributedText newValue) {
     if (newValue != _text) {
-      _text.removeListener(notifyListeners);
-      _text = newValue;
-      _text.addListener(notifyListeners);
+      _switchText(newValue);
 
       // Ensure that the existing selection does not overshoot
       // the end of the new text value
@@ -1482,23 +1484,40 @@ class AttributedTextEditingController with ChangeNotifier {
     }
   }
 
+  void _switchText(AttributedText newText) {
+    _text.removeListener(notifyListeners);
+    _text = newText;
+    _text.addListener(notifyListeners);
+  }
+
   /// Inserts [newText], starting at the given [insertIndex].
+  ///
+  /// If the current [selection] is collapsed, and the [insertIndex] is the
+  /// same as the collapsed selection, then the inserted text is treated as
+  /// user input. As such, the current [composingAttributions] are applied to the
+  /// inserted text.
+  ///
+  /// If the current [selection] is expanded, or if the current [selection]
+  /// is not the same as the [insertIndex], then the given [newText] is inserted
+  /// without any attributions. To insert text with explicit attributions, see
+  /// [insertAttributedText].
   ///
   /// The [selection] is updated to [newSelection], if provided, otherwise
   /// a best-guess attempt is made to adjust the selection based on an
   /// insertion action.
+  ///
+  /// The [composingRegion] is updated to [newComposingRegion], if provided,
+  /// otherwise the [composingRegion] is set to `TextRange.empty`.
   void insert({
     required String newText,
     required int insertIndex,
     TextSelection? newSelection,
     TextRange? newComposingRegion,
   }) {
-    final upstreamAttributions = insertIndex > 0 ? _text.spans.getAllAttributionsAt(insertIndex) : <Attribution>{};
-
     final updatedText = _text.insertString(
       textToInsert: newText,
       startOffset: insertIndex,
-      applyAttributions: upstreamAttributions,
+      applyAttributions: Set.from(composingAttributions),
     );
     // We must calculate the updated position before changing the text value
     // to avoid (possibly) automatically altering the current selection.
@@ -1515,14 +1534,53 @@ class AttributedTextEditingController with ChangeNotifier {
     composingRegion = newComposingRegion ?? TextRange.empty;
   }
 
+  /// Inserts the given attributed [newText] at [insertIndex].
+  ///
+  /// No additional attributions are applied to [newText], beyond the attributions
+  /// that it already includes.
+  ///
+  /// The [selection] is updated to [newSelection], if provided, otherwise
+  /// a best-guess attempt is made to adjust the selection based on an
+  /// insertion action.
+  ///
+  /// The [composingRegion] is updated to [newComposingRegion], if provided,
+  /// otherwise the [composingRegion] is set to `TextRange.empty`.
+  void insertAttributedText({
+    required AttributedText newText,
+    required int insertIndex,
+    TextSelection? newSelection,
+    TextRange? newComposingRegion,
+  }) {
+    final updatedText = _text.insert(
+      textToInsert: newText,
+      startOffset: insertIndex,
+    );
+    // We must calculate the updated position before changing the text value
+    // to avoid (possibly) automatically altering the current selection.
+    final updatedSelection = newSelection ??
+        _moveSelectionForInsertion(
+          selection: _selection,
+          insertIndex: insertIndex,
+          newTextLength: newText.text.length,
+        );
+
+    text = updatedText;
+    selection = updatedSelection;
+    // TODO: do we need to implement composing region update behavior like selections?
+    composingRegion = newComposingRegion ?? TextRange.empty;
+  }
+
   /// Removes the text between [from] (inclusive) and [to] (exclusive), and replaces that
   /// text with [newText].
   ///
   /// The [selection] is updated to [newSelection], if provided, otherwise
   /// a best-guess attempt is made to adjust the selection based on an
   /// insertion action.
+  ///
+  /// The [composingRegion] is updated to [newComposingRegion], if provided,
+  /// otherwise the [composingRegion] is set to `TextRange.empty`.
   void replace({
-    required String newText,
+    required AttributedText newText,
     required int from,
     required int to,
     TextSelection? newSelection,
@@ -1531,9 +1589,9 @@ class AttributedTextEditingController with ChangeNotifier {
     var updatedText = _text.removeRegion(startOffset: from, endOffset: to);
     var updatedSelection =
         newSelection ?? _moveSelectionForDeletion(selection: selection, deleteFrom: from, deleteTo: to);
-    updatedText = updatedText.insertString(textToInsert: newText, startOffset: from);
+    updatedText = updatedText.insert(textToInsert: newText, startOffset: from);
     updatedSelection = newSelection ??
-        _moveSelectionForInsertion(selection: updatedSelection, insertIndex: from, newTextLength: newText.length);
+        _moveSelectionForInsertion(selection: updatedSelection, insertIndex: from, newTextLength: newText.text.length);
 
     text = updatedText;
     selection = updatedSelection;
@@ -1546,13 +1604,15 @@ class AttributedTextEditingController with ChangeNotifier {
   /// The [selection] is updated to [newSelection], if provided, otherwise
   /// a best-guess attempt is made to adjust the selection based on an
   /// insertion action.
+  ///
+  /// The [composingRegion] is updated to [newComposingRegion], if provided,
+  /// otherwise the [composingRegion] is set to `TextRange.empty`.
   void delete({
     required int from,
     required int to,
     TextSelection? newSelection,
     TextRange? newComposingRegion,
   }) {
-    print('Deleting ${_text.text.substring(from, to)}');
     final updatedText = _text.removeRegion(startOffset: from, endOffset: to);
     // We must calculate the updated position before changing the text value
     // to avoid (possibly) automatically altering the current selection.
@@ -1620,12 +1680,114 @@ class AttributedTextEditingController with ChangeNotifier {
   set selection(TextSelection newValue) {
     if (newValue != _selection) {
       _selection = newValue;
+      _updateComposingAttributions();
       notifyListeners();
     }
   }
 
   bool isSelectionWithinTextBounds(TextSelection selection) {
     return selection.start <= text.text.length && selection.end <= text.text.length;
+  }
+
+  /// Updates the [composingAttributions] based on the current [selection]
+  /// and [text].
+  void _updateComposingAttributions() {
+    if (selection.isCollapsed) {
+      _composingAttributions
+        ..clear()
+        ..addAll(text.getAllAttributionsAt(selection.extentOffset));
+    } else {
+      _composingAttributions
+        ..clear()
+        ..addAll(text.getAllAttributionsThroughout(
+          TextRange(start: selection.start, end: selection.end),
+        ));
+    }
+  }
+
+  final _composingAttributions = <Attribution>[];
+
+  /// Attributions that will be applied to the next inserted character(s).
+  List<Attribution> get composingAttributions => List.from(_composingAttributions);
+
+  /// Adds the given [attributions] to [composingAttributions].
+  void addComposingAttributions(List<Attribution> attributions) {
+    _composingAttributions.addAll(attributions);
+    notifyListeners();
+  }
+
+  /// Toggles the presence of each of the given [attributions] within
+  /// the [composingAttributions].
+  void toggleComposingAttributions(List<Attribution> attributions) {
+    if (attributions.isEmpty) {
+      return;
+    }
+
+    for (final attribution in attributions) {
+      if (_composingAttributions.contains(attribution)) {
+        _composingAttributions.remove(attribution);
+      } else {
+        _composingAttributions.add(attribution);
+      }
+    }
+
+    notifyListeners();
+  }
+
+  /// Removes the given [attributions] from [composingAttributions].
+  void removeComposingAttributions(List<Attribution> attributions) {
+    _composingAttributions.removeWhere((attribution) => _composingAttributions.contains(attribution));
+    notifyListeners();
+  }
+
+  /// Replaces all existing [composingAttributions] with the given [attributions].
+  set composingAttributions(List<Attribution> attributions) {
+    _composingAttributions
+      ..clear()
+      ..addAll(attributions);
+    notifyListeners();
+  }
+
+  /// Removes all attributions from [composingAttributions].
+  void clearComposingAttributions() {
+    if (_composingAttributions.isNotEmpty) {
+      _composingAttributions.clear();
+      notifyListeners();
+    }
+  }
+
+  /// Toggles the presence of each of the given [attributions] within
+  /// the text in the [selection].
+  void toggleSelectionAttributions(List<Attribution> attributions) {
+    if (attributions.isEmpty) {
+      return;
+    }
+
+    if (selection.isCollapsed) {
+      return;
+    }
+
+    for (final attribution in attributions) {
+      _text.toggleAttribution(
+        attribution,
+        TextRange(start: selection.start, end: selection.end),
+      );
+    }
+
+    notifyListeners();
+  }
+
+  /// Removes all attributions from the text that is currently selected.
+  void clearSelectionAttributions() {
+    if (selection.isCollapsed) {
+      return;
+    }
+
+    _text.clearAttributions(
+      TextRange(start: selection.start, end: selection.end),
+    );
+
+    notifyListeners();
   }
 
   TextRange _composingRegion;
@@ -1644,6 +1806,7 @@ class AttributedTextEditingController with ChangeNotifier {
   void clear() {
     _text = AttributedText();
     _selection = const TextSelection.collapsed(offset: -1);
+    _composingAttributions.clear();
     _composingRegion = TextRange.empty;
   }
 }

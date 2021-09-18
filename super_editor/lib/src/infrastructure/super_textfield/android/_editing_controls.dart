@@ -165,10 +165,12 @@ class _AndroidEditingOverlayControlsState extends State<AndroidEditingOverlayCon
     final globalOffsetInMiddleOfLine =
         _getGlobalOffsetOfMiddleOfLine(widget.editingController.textController.selection.base);
     _touchHandleOffsetFromLineOfText = globalOffsetInMiddleOfLine - details.globalPosition;
+    _log.fine(' - global offset in middle of line: $globalOffsetInMiddleOfLine');
 
     widget.editingController
       ..hideToolbar()
       ..cancelCollapsedHandleAutoHideCountdown();
+    _log.fine(' - hid the toolbar, cancelled countdown timer');
 
     // TODO: de-dup the repeated calculations of the effective focal point: globalPosition + _touchHandleOffsetFromLineOfText
     widget.textScrollController.updateAutoScrollingForTouchOffset(
@@ -176,6 +178,7 @@ class _AndroidEditingOverlayControlsState extends State<AndroidEditingOverlayCon
           .globalToLocal(details.globalPosition + _touchHandleOffsetFromLineOfText!),
     );
     widget.textScrollController.addListener(_updateSelectionForNewDragHandleLocation);
+    _log.fine(' - updated auto scrolling for touch offset');
 
     setState(() {
       _isDraggingCollapsed = false;
@@ -185,6 +188,7 @@ class _AndroidEditingOverlayControlsState extends State<AndroidEditingOverlayCon
       // We map global to local instead of using  details.localPosition because
       // this drag event started in a handle, not within this overall widget.
       _localDragOffset = (context.findRenderObject() as RenderBox).globalToLocal(details.globalPosition);
+      _log.fine(' - done updating all local state for beginning drag');
     });
   }
 
@@ -216,19 +220,25 @@ class _AndroidEditingOverlayControlsState extends State<AndroidEditingOverlayCon
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
+    _log.fine('_onPanUpdate');
+
     // Must set global drag offset before _updateSelectionForNewDragHandleLocation()
     _globalDragOffset = details.globalPosition;
+    _log.fine(' - global offset: $_globalDragOffset');
     _updateSelectionForNewDragHandleLocation();
+    _log.fine(' - done updating selection for new drag handle location');
 
     // TODO: de-dup the repeated calculations of the effective focal point: globalPosition + _touchHandleOffsetFromLineOfText
     widget.textScrollController.updateAutoScrollingForTouchOffset(
       userInteractionOffsetInViewport: (widget.textFieldKey.currentContext!.findRenderObject() as RenderBox)
           .globalToLocal(details.globalPosition + _touchHandleOffsetFromLineOfText!),
     );
+    _log.fine(' - updated auto scrolling for touch offset');
 
     setState(() {
       _localDragOffset = _localDragOffset! + details.delta;
       widget.editingController.showMagnifier(_localDragOffset!);
+      _log.fine(' - done updating all local state for drag update');
     });
   }
 
@@ -241,6 +251,7 @@ class _AndroidEditingOverlayControlsState extends State<AndroidEditingOverlayCon
         offset: textLayout.getPositionNearestToOffset(textOffset).offset,
       );
     } else if (_isDraggingBase) {
+      _log.fine('Dragging base. New offset: ${textLayout.getPositionNearestToOffset(textOffset).offset}');
       widget.editingController.textController.selection = widget.editingController.textController.selection.copyWith(
         baseOffset: textLayout.getPositionNearestToOffset(textOffset).offset,
       );
