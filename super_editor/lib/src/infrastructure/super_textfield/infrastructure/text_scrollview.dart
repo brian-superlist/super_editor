@@ -4,7 +4,7 @@ import 'package:super_editor/src/infrastructure/_logging.dart';
 import 'package:super_editor/src/infrastructure/super_selectable_text.dart';
 import 'package:super_editor/src/infrastructure/super_textfield/super_textfield.dart';
 
-final _log = textFieldLog;
+final _log = scrollingTextFieldLog;
 
 /// A scrollable that positions its [child] based on text metrics.
 ///
@@ -256,7 +256,7 @@ class _TextScrollViewState extends State<TextScrollView>
 
     final bottomOfLastLine = _viewportHeight! + _scrollController.offset;
     // Note: we nudge the vertical offset down a few pixels to see if we
-    // find a text position in the line above.
+    // find a text position in the line below.
     final textPositionOneLineDown = _text.getPositionNearestToOffset(Offset(0, bottomOfLastLine + 5));
     final bottomOfCharacter = _text.getCharacterBox(textPositionOneLineDown).bottom;
     return bottomOfCharacter;
@@ -500,6 +500,8 @@ class TextScrollController with ChangeNotifier {
       return;
     }
 
+    _log.fine('Jumping to start of scroll region');
+
     final startScrollOffset = _delegate!.startScrollOffset;
     if (_scrollOffset != startScrollOffset) {
       _scrollOffset = startScrollOffset;
@@ -512,6 +514,8 @@ class TextScrollController with ChangeNotifier {
       _log.warning("Can't calculate end scroll offset. The auto-scroll delegate is null.");
       return;
     }
+
+    _log.fine('Jumping to end of scroll region');
 
     final endScrollOffset = _delegate!.endScrollOffset;
     if (_scrollOffset != endScrollOffset) {
@@ -533,7 +537,6 @@ class TextScrollController with ChangeNotifier {
     } else if (_delegate!.isInAutoScrollToEndRegion(userInteractionOffsetInViewport)) {
       startScrollingToEnd();
     } else {
-      print('stopScrolling() from updateAutoScrollingForTouchOffset()');
       stopScrolling();
     }
   }
@@ -580,7 +583,7 @@ class TextScrollController with ChangeNotifier {
 
   /// Stops any auto-scrolling that is currently in progress.
   void stopScrolling() {
-    if (_autoScrollDirection == null) {
+    if (!_ticker.isTicking) {
       return;
     }
     _log.fine('stopping auto-scroll');
@@ -608,6 +611,7 @@ class TextScrollController with ChangeNotifier {
     }
 
     if (elapsedTime < _timeOfNextAutoScroll) {
+      // Not enough time has passed to jump further in the scroll direction.
       return;
     }
 
@@ -670,8 +674,18 @@ class TextScrollController with ChangeNotifier {
       return;
     }
 
-    _scrollOffset = _delegate!.getVerticalOffsetForTopOfLineAboveViewport();
+    _log.fine('Auto-scrolling one line up');
+
+    _log.finer('Old offset: $_scrollOffset.');
+    _log.finer('Viewport height: ${_delegate!.viewportHeight}');
+    _log.finer(
+        'Vertical offset for top of line above viewport: ${_delegate!.getVerticalOffsetForTopOfLineAboveViewport()}');
+    final newOffset = _delegate!.getVerticalOffsetForTopOfLineAboveViewport();
+    _log.finer('New offset: $_scrollOffset');
+
+    _scrollOffset = newOffset;
     _timeOfNextAutoScroll += _autoScrollTimePerLine;
+    _log.fine('New scroll offset: $_scrollOffset, time of next scroll: $_timeOfNextAutoScroll');
 
     notifyListeners();
   }
@@ -684,11 +698,18 @@ class TextScrollController with ChangeNotifier {
       return;
     }
 
+    _log.fine('Auto-scrolling one line down');
+
+    _log.finer('Old offset: $_scrollOffset.');
+    _log.finer('Viewport height: ${_delegate!.viewportHeight}');
+    _log.finer(
+        'Vertical offset for bottom of line below viewport: ${_delegate!.getVerticalOffsetForBottomOfLineBelowViewport()}');
     final newOffset = _delegate!.getVerticalOffsetForBottomOfLineBelowViewport() - _delegate!.viewportHeight;
-    _log.fine('Scrolling down. New offset: $newOffset');
+    _log.finer('New offset: $newOffset');
 
     _scrollOffset = newOffset;
     _timeOfNextAutoScroll += _autoScrollTimePerLine;
+    _log.fine('New scroll offset: $_scrollOffset, time of next scroll: $_timeOfNextAutoScroll');
 
     notifyListeners();
   }
