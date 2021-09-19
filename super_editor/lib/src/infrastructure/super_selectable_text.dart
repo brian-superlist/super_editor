@@ -212,7 +212,7 @@ class SuperSelectableTextState extends State<SuperSelectableText> implements Tex
 
     // If no text is currently displayed, we can't use a character box
     // to measure, but we may be able to use related metrics.
-    if (widget.richText.text == null || widget.richText.text!.isEmpty) {
+    if (widget.richText.toPlainText().isEmpty) {
       final estimatedLineHeight =
           _renderParagraph!.getFullHeightForCaret(position) ?? widget.richText.style?.fontSize ?? 0.0;
       return estimatedLineHeight * lineHeightMultiplier;
@@ -235,7 +235,7 @@ class SuperSelectableTextState extends State<SuperSelectableText> implements Tex
     return _renderParagraph!
         .getBoxesForSelection(TextSelection(
           baseOffset: 0,
-          extentOffset: widget.richText.text?.length ?? 0,
+          extentOffset: widget.richText.toPlainText().length,
         ))
         .length;
   }
@@ -272,14 +272,16 @@ class SuperSelectableTextState extends State<SuperSelectableText> implements Tex
     if (_renderParagraph == null) {
       return const TextBox.fromLTRBD(0, 0, 0, 0, TextDirection.ltr);
     }
-    if (widget.richText.text == null || widget.richText.text!.isEmpty) {
+
+    final plainText = widget.richText.toPlainText();
+    if (plainText.isEmpty) {
       final lineHeightEstimate = _renderParagraph!.getFullHeightForCaret(const TextPosition(offset: 0)) ?? 0.0;
       return TextBox.fromLTRBD(0, 0, 0, lineHeightEstimate, TextDirection.ltr);
     }
 
-    final characterPosition = position.offset >= widget.richText.text!.length
-        ? TextPosition(offset: widget.richText.text!.length - 1)
-        : position;
+    // Ensure that the given TextPosition does not exceed available text length.
+    final characterPosition =
+        position.offset >= plainText.length ? TextPosition(offset: plainText.length - 1) : position;
 
     return _renderParagraph!
         .getBoxesForSelection(TextSelection(
