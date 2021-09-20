@@ -749,7 +749,7 @@ class AttributedSpans {
     // Re-insert any markers that are needed to retain
     // symmetry after the deletions above.
     for (final attribution in needToStartAttributions) {
-      final offset = startOffset > 0 ? startOffset - 1 : 0;
+      final offset = startOffset;
       _log.fine('adding back a start marker at $offset');
       contractedAttributions.add(SpanMarker(
         attribution: attribution,

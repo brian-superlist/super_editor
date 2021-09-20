@@ -216,7 +216,7 @@ final _menu = <_MenuGroup>[
         icon: Icons.text_fields,
         title: 'Super iOS Textfield',
         pageBuilder: (context) {
-          return SuperIOSTextfieldDemo();
+          return SuperIOSTextFieldDemo();
         },
       ),
       _MenuItem(

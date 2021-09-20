@@ -9,6 +9,8 @@ import 'package:super_editor/src/infrastructure/super_textfield/infrastructure/h
 import 'package:super_editor/src/infrastructure/super_textfield/infrastructure/text_scrollview.dart';
 import 'package:super_editor/super_editor.dart';
 
+import '../_ime_text_editing_controller.dart';
+
 export '_caret.dart';
 export '_handles.dart';
 export '_toolbar.dart';
@@ -41,7 +43,7 @@ class SuperAndroidTextfield extends StatefulWidget {
 
   /// Controller that owns the text content and text selection for
   /// this text field.
-  final AttributedTextEditingController? textController;
+  final ImeAttributedTextEditingController? textController;
 
   /// Text style factory that creates styles for the content in
   /// [textController] based on the attributions in that content.
@@ -117,9 +119,7 @@ class SuperAndroidTextfield extends StatefulWidget {
   _SuperAndroidTextfieldState createState() => _SuperAndroidTextfieldState();
 }
 
-class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
-    with SingleTickerProviderStateMixin
-    implements TextInputClient {
+class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield> with SingleTickerProviderStateMixin {
   final _textFieldKey = GlobalKey();
   final _textFieldLayerLink = LayerLink();
   final _textContentLayerLink = LayerLink();
@@ -128,9 +128,7 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
 
   late FocusNode _focusNode;
 
-  late AttributedTextEditingController _textEditingController;
-  TextInputConnection? _textInputConnection;
-  TextEditingValue? _latestPlatformTextEditingValue;
+  late ImeAttributedTextEditingController _textEditingController;
 
   final _magnifierLayerLink = LayerLink();
   late AndroidEditingOverlayController _editingOverlayController;
@@ -152,7 +150,8 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
       _showEditingControlsOverlay();
     }
 
-    _textEditingController = (widget.textController ?? AttributedTextEditingController())..addListener(_onTextChanged);
+    _textEditingController = (widget.textController ?? ImeAttributedTextEditingController())
+      ..addListener(_onTextOrSelectionChange);
 
     _textScrollController = TextScrollController(
       textController: _textEditingController,
@@ -179,21 +178,20 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
       _focusNode.addListener(_onFocusChange);
     }
 
-    if (widget.textInputAction != oldWidget.textInputAction && _textInputConnection != null) {
-      _textInputConnection!.updateConfig(TextInputConfiguration(
-        inputAction: widget.textInputAction,
-      ));
+    if (widget.textInputAction != oldWidget.textInputAction && _textEditingController.isAttachedToIme) {
+      _textEditingController.updateTextInputConfiguration(
+        textInputAction: widget.textInputAction,
+      );
     }
 
     if (widget.textController != oldWidget.textController) {
-      _textEditingController.removeListener(_onTextChanged);
+      _textEditingController.removeListener(_onTextOrSelectionChange);
       if (widget.textController != null) {
         _textEditingController = widget.textController!;
       } else {
-        _textEditingController = AttributedTextEditingController();
+        _textEditingController = ImeAttributedTextEditingController();
       }
-      _textEditingController.addListener(_onTextChanged);
-      _sendEditingValueToPlatform();
+      _textEditingController.addListener(_onTextOrSelectionChange);
     }
 
     if (widget.showDebugPaint != oldWidget.showDebugPaint) {
@@ -222,7 +220,7 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
   void dispose() {
     _removeEditingOverlayControls();
 
-    _textEditingController.removeListener(_onTextChanged);
+    _textEditingController.removeListener(_onTextOrSelectionChange);
     if (widget.textController == null) {
       _textEditingController.dispose();
     }
@@ -243,18 +241,12 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
 
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
-      if (_textInputConnection == null) {
+      if (!_textEditingController.isAttachedToIme) {
         _log.info('Attaching TextInputClient to TextInput');
         setState(() {
-          _textInputConnection = TextInput.attach(
-              this,
-              TextInputConfiguration(
-                inputAction: widget.textInputAction,
-                enableDeltaModel: true,
-              ));
-          _textInputConnection!
-            ..show()
-            ..setEditingState(currentTextEditingValue!);
+          _textEditingController.attachToIme(
+            textInputAction: widget.textInputAction,
+          );
 
           _showEditingControlsOverlay();
         });
@@ -262,21 +254,17 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
     } else {
       _log.info('Detaching TextInputClient from TextInput.');
       setState(() {
-        _textInputConnection?.close();
-        _textInputConnection = null;
+        _textEditingController.detachFromIme();
         _textEditingController.selection = const TextSelection.collapsed(offset: -1);
         _removeEditingOverlayControls();
       });
     }
   }
 
-  void _onTextChanged() {
-    _log.fine('_onTextChanged: selection: ${_textEditingController.selection}');
+  void _onTextOrSelectionChange() {
     if (_textEditingController.selection.isCollapsed) {
       _editingOverlayController.hideToolbar();
     }
-
-    _sendEditingValueToPlatform();
   }
 
   void _onTextScrollChange() {
@@ -321,112 +309,6 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
     }
   }
 
-  void _sendEditingValueToPlatform() {
-    if (_textInputConnection != null && _textInputConnection!.attached) {
-      _log.fine('Sending TextEditingValue to platform: $currentTextEditingValue');
-      _textInputConnection!.setEditingState(currentTextEditingValue!);
-    }
-  }
-
-  @override
-  AutofillScope? get currentAutofillScope => null;
-
-  @override
-  TextEditingValue? get currentTextEditingValue => TextEditingValue(
-        text: _textEditingController.text.text,
-        selection: _textEditingController.selection,
-        composing: _textEditingController.composingRegion,
-      );
-
-  @override
-  void performAction(TextInputAction action) {
-    widget.onPerformActionPressed?.call(action);
-  }
-
-  @override
-  void performPrivateCommand(String action, Map<String, dynamic> data) {
-    // performPrivateCommand() provides a representation for unofficial
-    // input commands to be executed. This appears to be an extension point
-    // or an escape hatch for input functionality that an app needs to support,
-    // but which does not exist at the OS/platform level.
-  }
-
-  @override
-  void showAutocorrectionPromptRect(int start, int end) {
-    // This method reports auto-correct bounds when the user selects
-    // text with shift+arrow keys on desktop. I'm not sure how to
-    // trigger this using only touch interactions. In any event, we're
-    // never told when to get rid of the auto-correct range. Therefore,
-    // for now, I'm leaving this un-implemented.
-
-    // _textEditingController.text
-    //   ..removeAttribution(AutoCorrectAttribution(), TextRange(start: 0, end: _textEditingController.text.text.length))
-    //   ..addAttribution(AutoCorrectAttribution(), TextRange(start: start, end: end));
-  }
-
-  @override
-  void updateEditingValue(TextEditingValue value) {
-    _latestPlatformTextEditingValue = value;
-    _log.fine('New platform TextEditingValue: $value');
-
-    if (_latestPlatformTextEditingValue != currentTextEditingValue) {
-      _textEditingController
-        ..text = AttributedText(text: value.text)
-        ..selection = value.selection
-        ..composingRegion = value.composing;
-    }
-  }
-
-  @override
-  void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
-    _log.fine('Received text editing deltas from platform...');
-    for (final delta in deltas) {
-      _log.fine(
-          'Text delta: ${delta.deltaType}, range: ${delta.deltaRange}, new selection: ${delta.selection}, new composing: ${delta.composing}');
-      switch (delta.deltaType) {
-        case TextEditingDeltaType.insertion:
-          _textEditingController.insert(
-            newText: delta.deltaText,
-            insertIndex: delta.deltaRange.start,
-            newSelection: delta.selection,
-          );
-          break;
-        case TextEditingDeltaType.deletion:
-          _textEditingController.delete(
-            from: delta.deltaRange.start,
-            to: delta.deltaRange.end,
-            newSelection: delta.selection,
-          );
-          break;
-        case TextEditingDeltaType.replacement:
-          _textEditingController.replace(
-            newText: AttributedText(text: delta.deltaText),
-            from: delta.deltaRange.start,
-            to: delta.deltaRange.end,
-            newSelection: delta.selection,
-          );
-          break;
-        case TextEditingDeltaType.equality:
-          // no-op
-          break;
-      }
-    }
-
-    _latestPlatformTextEditingValue = currentTextEditingValue;
-  }
-
-  @override
-  void updateFloatingCursor(RawFloatingCursorPoint point) {
-    // No floating cursor on Android.
-  }
-
-  @override
-  void connectionClosed() {
-    _log.info('TextInputClient: connectionClosed()');
-    _textInputConnection = null;
-    _latestPlatformTextEditingValue = null;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Focus(
@@ -459,12 +341,10 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield>
               builder: (context) {
                 final styleBuilder =
                     _textEditingController.text.text.isNotEmpty ? widget.textStyleBuilder : widget.hintTextStyleBuilder;
-                print('styleBuilder: $styleBuilder');
 
                 final textSpan = _textEditingController.text.text.isNotEmpty
                     ? _textEditingController.text.computeTextSpan(styleBuilder)
                     : widget.hintText?.computeTextSpan(widget.hintTextStyleBuilder) ?? const TextSpan();
-                print('Text span: ${textSpan.children}');
 
                 final emptyTextCaretHeight =
                     (widget.textStyleBuilder({}).fontSize ?? 0.0) * (widget.textStyleBuilder({}).height ?? 1.0);

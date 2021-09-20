@@ -4,6 +4,7 @@ class LogNames {
   static const editor = 'editor';
 
   static const textField = 'textfield';
+  static const scrollingTextField = 'textfield.scrolling';
   static const imeTextField = 'textfield.ime';
   static const androidTextField = 'textfield.android';
   static const iosTextField = 'textfield.ios';
@@ -15,6 +16,7 @@ class LogNames {
 final editorLog = logging.Logger(LogNames.editor);
 
 final textFieldLog = logging.Logger(LogNames.textField);
+final scrollingTextFieldLog = logging.Logger(LogNames.scrollingTextField);
 final imeTextFieldLog = logging.Logger(LogNames.imeTextField);
 final androidTextFieldLog = logging.Logger(LogNames.androidTextField);
 final iosTextFieldLog = logging.Logger(LogNames.iosTextField);
@@ -22,23 +24,35 @@ final iosTextFieldLog = logging.Logger(LogNames.iosTextField);
 final infrastructureLog = logging.Logger(LogNames.infrastructure);
 final attributionsLog = logging.Logger(LogNames.attributions);
 
+final _activeLoggers = <logging.Logger>{};
+
 void initAllLogs(logging.Level level) {
-  initLoggers(level, [logging.Logger.root]);
+  initLoggers(level, {logging.Logger.root});
 }
 
-void initLoggers(logging.Level level, List<logging.Logger> loggers) {
+void initLoggers(logging.Level level, Set<logging.Logger> loggers) {
   logging.hierarchicalLoggingEnabled = true;
 
   for (final logger in loggers) {
-    logger
-      ..level = level
-      ..onRecord.listen(printLog);
+    if (!_activeLoggers.contains(logger)) {
+      print('Initializing logger: ${logger.name}');
+      logger
+        ..level = level
+        ..onRecord.listen(printLog);
+
+      _activeLoggers.add(logger);
+    }
   }
 }
 
-void deactivateLoggers(List<logging.Logger> loggers) {
+void deactivateLoggers(Set<logging.Logger> loggers) {
   for (final logger in loggers) {
-    logger.clearListeners();
+    if (_activeLoggers.contains(logger)) {
+      print('Deactivating logger: ${logger.name}');
+      logger.clearListeners();
+
+      _activeLoggers.remove(logger);
+    }
   }
 }
 

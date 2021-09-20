@@ -9,9 +9,11 @@ import 'package:super_editor/super_editor.dart';
 class MobileSuperTextFieldDemo extends StatefulWidget {
   const MobileSuperTextFieldDemo({
     Key? key,
+    required this.initialText,
     required this.createTextField,
   }) : super(key: key);
 
+  final AttributedText initialText;
   final Widget Function(MobileTextFieldDemoConfig) createTextField;
 
   @override
@@ -20,10 +22,7 @@ class MobileSuperTextFieldDemo extends StatefulWidget {
 
 class _MobileSuperTextFieldDemoState extends State<MobileSuperTextFieldDemo> {
   final _screenFocusNode = FocusNode();
-  final _textController = AttributedTextEditingController(
-      text: AttributedText(
-          text:
-              'This is a custom textfield implementation called SuperAndroidTextField. It is super long so that we can mess with scrolling. This drags it out even further so that we can get multiline scrolling, too. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin tempor sapien est, in eleifend purus rhoncus fringilla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nulla varius libero lorem, eget tincidunt ante porta accumsan. Morbi quis ante at nunc molestie ullamcorper.'));
+  late ImeAttributedTextEditingController _textController;
 
   _TextFieldSizeMode _sizeMode = _TextFieldSizeMode.short;
 
@@ -33,12 +32,28 @@ class _MobileSuperTextFieldDemoState extends State<MobileSuperTextFieldDemo> {
   void initState() {
     super.initState();
 
-    initLoggers(Level.FINE, [textFieldLog, imeTextFieldLog, androidTextFieldLog]);
+    initLoggers(Level.FINEST, {
+      // textFieldLog,
+      scrollingTextFieldLog,
+      // imeTextFieldLog,
+      // androidTextFieldLog,
+    });
+
+    _textController = ImeAttributedTextEditingController(
+      controller: AttributedTextEditingController(
+        text: widget.initialText,
+      ),
+    );
   }
 
   @override
   void dispose() {
-    deactivateLoggers([textFieldLog, imeTextFieldLog, androidTextFieldLog]);
+    deactivateLoggers({
+      // textFieldLog,
+      scrollingTextFieldLog,
+      // imeTextFieldLog,
+      // androidTextFieldLog,
+    });
 
     super.dispose();
   }
@@ -153,7 +168,7 @@ class _MobileSuperTextFieldDemoState extends State<MobileSuperTextFieldDemo> {
   TextStyle _styleBuilder(Set<Attribution> attributions) {
     return TextStyle(
       color: Colors.black,
-      fontSize: 16,
+      fontSize: 22,
       height: 1.4,
       fontWeight: attributions.contains(boldAttribution) ? FontWeight.bold : FontWeight.normal,
       fontStyle: attributions.contains(italicsAttribution) ? FontStyle.italic : FontStyle.normal,
@@ -182,7 +197,7 @@ class MobileTextFieldDemoConfig {
     required this.showDebugPaint,
   });
 
-  final AttributedTextEditingController controller;
+  final ImeAttributedTextEditingController controller;
   final AttributionStyleBuilder styleBuilder;
   final int? minLines;
   final int? maxLines;

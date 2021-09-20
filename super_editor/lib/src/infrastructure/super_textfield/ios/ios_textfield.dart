@@ -24,8 +24,8 @@ export '_user_interaction.dart';
 
 final _log = iosTextFieldLog;
 
-class SuperIOSTextfield extends StatefulWidget {
-  const SuperIOSTextfield({
+class SuperIOSTextField extends StatefulWidget {
+  const SuperIOSTextField({
     Key? key,
     this.focusNode,
     this.textController,
@@ -48,7 +48,7 @@ class SuperIOSTextfield extends StatefulWidget {
 
   /// Controller that owns the text content and text selection for
   /// this text field.
-  final AttributedTextEditingController? textController;
+  final ImeAttributedTextEditingController? textController;
 
   /// Text style factory that creates styles for the content in
   /// [textController] based on the attributions in that content.
@@ -114,12 +114,10 @@ class SuperIOSTextfield extends StatefulWidget {
   final Function(TextInputAction)? onPerformActionPressed;
 
   @override
-  _SuperIOSTextfieldState createState() => _SuperIOSTextfieldState();
+  _SuperIOSTextFieldState createState() => _SuperIOSTextFieldState();
 }
 
-class _SuperIOSTextfieldState extends State<SuperIOSTextfield>
-    with SingleTickerProviderStateMixin
-    implements TextInputClient {
+class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTickerProviderStateMixin {
   final _textFieldKey = GlobalKey();
   final _textFieldLayerLink = LayerLink();
   final _textContentLayerLink = LayerLink();
@@ -128,7 +126,7 @@ class _SuperIOSTextfieldState extends State<SuperIOSTextfield>
 
   late FocusNode _focusNode;
 
-  late AttributedTextEditingController _textEditingController;
+  late ImeAttributedTextEditingController _textEditingController;
   late FloatingCursorController _floatingCursorController;
   TextInputConnection? _textInputConnection;
 
@@ -152,8 +150,8 @@ class _SuperIOSTextfieldState extends State<SuperIOSTextfield>
       _showHandles();
     }
 
-    _textEditingController = (widget.textController ?? AttributedTextEditingController())
-      ..addListener(_sendEditingValueToPlatform);
+    _textEditingController = (widget.textController ?? ImeAttributedTextEditingController())
+      ..addListener(_onTextOrSelectionChange);
 
     _textScrollController = TextScrollController(
       textController: _textEditingController,
@@ -168,12 +166,10 @@ class _SuperIOSTextfieldState extends State<SuperIOSTextfield>
       textController: _textEditingController,
       magnifierFocalPoint: _magnifierLayerLink,
     );
-
-    // _testAutoScrolling();
   }
 
   @override
-  void didUpdateWidget(SuperIOSTextfield oldWidget) {
+  void didUpdateWidget(SuperIOSTextField oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (widget.focusNode != oldWidget.focusNode) {
@@ -186,21 +182,13 @@ class _SuperIOSTextfieldState extends State<SuperIOSTextfield>
       _focusNode.addListener(_onFocusChange);
     }
 
-    if (widget.textInputAction != oldWidget.textInputAction && _textInputConnection != null) {
-      _textInputConnection!.updateConfig(TextInputConfiguration(
-        inputAction: widget.textInputAction,
-      ));
-    }
-
     if (widget.textController != oldWidget.textController) {
-      _textEditingController.removeListener(_sendEditingValueToPlatform);
+      _textEditingController.removeListener(_onTextOrSelectionChange);
       if (widget.textController != null) {
         _textEditingController = widget.textController!;
       } else {
-        _textEditingController = AttributedTextEditingController();
+        _textEditingController = ImeAttributedTextEditingController()..addListener(_onTextOrSelectionChange);
       }
-      _textEditingController.addListener(_sendEditingValueToPlatform);
-      _sendEditingValueToPlatform();
     }
 
     if (widget.showDebugPaint != oldWidget.showDebugPaint) {
@@ -229,7 +217,7 @@ class _SuperIOSTextfieldState extends State<SuperIOSTextfield>
   void dispose() {
     _removeHandles();
 
-    _textEditingController.removeListener(_sendEditingValueToPlatform);
+    _textEditingController.removeListener(_onTextOrSelectionChange);
     if (widget.textController == null) {
       _textEditingController.dispose();
     }
@@ -250,17 +238,12 @@ class _SuperIOSTextfieldState extends State<SuperIOSTextfield>
 
   void _onFocusChange() {
     if (_focusNode.hasFocus) {
-      if (_textInputConnection == null) {
+      if (!_textEditingController.isAttachedToIme) {
         _log.info('Attaching TextInputClient to TextInput');
         setState(() {
-          _textInputConnection = TextInput.attach(
-              this,
-              TextInputConfiguration(
-                inputAction: widget.textInputAction,
-              ));
-          _textInputConnection!
-            ..show()
-            ..setEditingState(currentTextEditingValue!);
+          _textEditingController.attachToIme(
+            textInputAction: widget.textInputAction,
+          );
 
           _showHandles();
         });
@@ -273,6 +256,12 @@ class _SuperIOSTextfieldState extends State<SuperIOSTextfield>
         _textEditingController.selection = const TextSelection.collapsed(offset: -1);
         _removeHandles();
       });
+    }
+  }
+
+  void _onTextOrSelectionChange() {
+    if (_textEditingController.selection.isCollapsed) {
+      _editingOverlayController.hideToolbar();
     }
   }
 
@@ -318,76 +307,9 @@ class _SuperIOSTextfieldState extends State<SuperIOSTextfield>
     }
   }
 
-  void _sendEditingValueToPlatform() {
-    if (_textInputConnection != null && _textInputConnection!.attached) {
-      _textInputConnection!.setEditingState(currentTextEditingValue!);
-    }
-  }
-
-  @override
-  AutofillScope? get currentAutofillScope => null;
-
-  @override
-  TextEditingValue? get currentTextEditingValue => TextEditingValue(
-        text: _textEditingController.text.text,
-        selection: _textEditingController.selection,
-      );
-
-  @override
-  void performAction(TextInputAction action) {
-    widget.onPerformActionPressed?.call(action);
-  }
-
-  @override
-  void performPrivateCommand(String action, Map<String, dynamic> data) {
-    // performPrivateCommand() provides a representation for unofficial
-    // input commands to be executed. This appears to be an extension point
-    // or an escape hatch for input functionality that an app needs to support,
-    // but which does not exist at the OS/platform level.
-  }
-
-  @override
-  void showAutocorrectionPromptRect(int start, int end) {
-    // This method reports auto-correct bounds when the user selects
-    // text with shift+arrow keys on desktop. I'm not sure how to
-    // trigger this using only touch interactions. In any event, we're
-    // never told when to get rid of the auto-correct range. Therefore,
-    // for now, I'm leaving this un-implemented.
-
-    // _textEditingController.text
-    //   ..removeAttribution(AutoCorrectAttribution(), TextRange(start: 0, end: _textEditingController.text.text.length))
-    //   ..addAttribution(AutoCorrectAttribution(), TextRange(start: start, end: end));
-  }
-
-  @override
-  void updateEditingValue(TextEditingValue value) {
-    // TODO: find out why this issue occurs
-    //       We ignore platform updates while the floating cursor is moving
-    //       because the platform seems to be undoing our floating cursor
-    //       changes.
-    if (_floatingCursorController.isShowingFloatingCursor) {
-      return;
-    }
-
-    _textEditingController.text = AttributedText(text: value.text);
-    _textEditingController.selection = value.selection;
-  }
-
-  @override
-  void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
-    // TODO: implement updateEditingValueWithDeltas
-    print('Received deltas');
-  }
-
   @override
   void updateFloatingCursor(RawFloatingCursorPoint point) {
     _floatingCursorController.updateFloatingCursor(_textContentKey.currentState!, point);
-  }
-
-  @override
-  void connectionClosed() {
-    _log.info('TextInputClient: connectionClosed()');
-    _textInputConnection = null;
   }
 
   @override

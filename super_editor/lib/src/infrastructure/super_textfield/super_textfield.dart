@@ -17,6 +17,7 @@ import 'package:super_editor/src/infrastructure/text_layout.dart';
 import '../attributed_text.dart';
 import '../keyboard.dart';
 import '../multi_tap_gesture.dart';
+export '_ime_text_editing_controller.dart';
 
 final _log = Logger(scope: 'super_textfield.dart');
 
@@ -1530,6 +1531,7 @@ class AttributedTextEditingController with ChangeNotifier {
 
     text = updatedText;
     selection = updatedSelection;
+    _updateComposingAttributions();
     // TODO: do we need to implement composing region update behavior like selections?
     composingRegion = newComposingRegion ?? TextRange.empty;
   }
@@ -1566,6 +1568,7 @@ class AttributedTextEditingController with ChangeNotifier {
 
     text = updatedText;
     selection = updatedSelection;
+    _updateComposingAttributions();
     // TODO: do we need to implement composing region update behavior like selections?
     composingRegion = newComposingRegion ?? TextRange.empty;
   }
@@ -1595,8 +1598,28 @@ class AttributedTextEditingController with ChangeNotifier {
 
     text = updatedText;
     selection = updatedSelection;
+    _updateComposingAttributions();
     // TODO: do we need to implement composing region update behavior like selections?
     composingRegion = newComposingRegion ?? TextRange.empty;
+  }
+
+  TextSelection _moveSelectionForInsertion({
+    required TextSelection selection,
+    required int insertIndex,
+    required int newTextLength,
+  }) {
+    int newBaseOffset = selection.baseOffset;
+    if ((selection.baseOffset == insertIndex && selection.isCollapsed) || (selection.baseOffset > insertIndex)) {
+      newBaseOffset = selection.baseOffset + newTextLength;
+    }
+
+    final newExtentOffset =
+        selection.extentOffset >= insertIndex ? selection.extentOffset + newTextLength : selection.extentOffset;
+
+    return TextSelection(
+      baseOffset: newBaseOffset,
+      extentOffset: newExtentOffset,
+    );
   }
 
   /// Removes the text between [from] (inclusive) and [to] (exclusive).
@@ -1621,27 +1644,9 @@ class AttributedTextEditingController with ChangeNotifier {
 
     text = updatedText;
     selection = updatedSelection;
+    _updateComposingAttributions();
     // TODO: do we need to implement composing region update behavior like selections?
     composingRegion = newComposingRegion ?? TextRange.empty;
-  }
-
-  TextSelection _moveSelectionForInsertion({
-    required TextSelection selection,
-    required int insertIndex,
-    required int newTextLength,
-  }) {
-    int newBaseOffset = selection.baseOffset;
-    if ((selection.baseOffset == insertIndex && selection.isCollapsed) || (selection.baseOffset > insertIndex)) {
-      newBaseOffset = selection.baseOffset + newTextLength;
-    }
-
-    final newExtentOffset =
-        selection.extentOffset >= insertIndex ? selection.extentOffset + newTextLength : selection.extentOffset;
-
-    return TextSelection(
-      baseOffset: newBaseOffset,
-      extentOffset: newExtentOffset,
-    );
   }
 
   TextSelection _moveSelectionForDeletion({
@@ -1695,7 +1700,9 @@ class AttributedTextEditingController with ChangeNotifier {
     if (selection.isCollapsed) {
       _composingAttributions
         ..clear()
-        ..addAll(text.getAllAttributionsAt(selection.extentOffset));
+        ..addAll(text.getAllAttributionsAt(
+          max(selection.extentOffset - 1, 0),
+        ));
     } else {
       _composingAttributions
         ..clear()

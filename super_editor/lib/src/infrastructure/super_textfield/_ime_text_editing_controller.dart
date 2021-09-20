@@ -31,7 +31,9 @@ class ImeAttributedTextEditingController
     implements AttributedTextEditingController, TextInputClient {
   ImeAttributedTextEditingController({
     final AttributedTextEditingController? controller,
-  }) : _realController = controller ?? AttributedTextEditingController();
+  }) : _realController = controller ?? AttributedTextEditingController() {
+    _realController.addListener(_onTextChange);
+  }
 
   @override
   void dispose() {
@@ -44,12 +46,14 @@ class ImeAttributedTextEditingController
   TextInputConnection? _inputConnection;
   bool _isKeyboardDisplayDesired = false;
 
+  bool get isAttachedToIme => _inputConnection != null && _inputConnection!.attached;
+
   void attachToIme({
     bool autocorrect = true,
     bool enableSuggestions = true,
     TextInputAction textInputAction = TextInputAction.done,
   }) {
-    if (_inputConnection != null) {
+    if (isAttachedToIme) {
       // We're already connected to the IME.
       return;
     }
@@ -67,8 +71,35 @@ class ImeAttributedTextEditingController
       ..setEditingState(currentTextEditingValue!);
   }
 
+  void updateTextInputConfiguration({
+    bool autocorrect = true,
+    bool enableSuggestions = true,
+    TextInputAction textInputAction = TextInputAction.done,
+  }) {
+    if (!isAttachedToIme) {
+      // We're not attached to the IME, so there is nothing to update.
+      return;
+    }
+
+    // Close the current connection.
+    _inputConnection?.close();
+
+    // Open a new connection with the new configuration.
+    _inputConnection = TextInput.attach(
+        this,
+        TextInputConfiguration(
+          autocorrect: autocorrect,
+          enableDeltaModel: true,
+          enableSuggestions: enableSuggestions,
+          inputAction: textInputAction,
+        ));
+    _inputConnection!
+      ..show()
+      ..setEditingState(currentTextEditingValue!);
+  }
+
   void detachFromIme() {
-    // TODO:
+    _inputConnection?.close();
   }
 
   void showKeyboard() {
@@ -91,7 +122,40 @@ class ImeAttributedTextEditingController
   }
 
   //------ Start TextInputClient ----
+  // Whether to forward text changes to the platform.
+  //
+  // Sometimes text changes originate from the platform, and other times changes
+  // originate from the app side, e.g., user selection, programmatic changes, etc.
+  // When changes come from the app, we want to forward those to platform. But,
+  // when changes originate from the platform, we don't want to send those back
+  // to the platform as changes. This flag differentiates between the two situations.
+  bool _sendTextChangesToPlatform = true;
+
+  void _onTextChange() {
+    if (_sendTextChangesToPlatform) {
+      _sendEditingValueToPlatform();
+    }
+
+    // Forward the change notification to our listeners (because we wrap
+    // _realController as a proxy).
+    notifyListeners();
+  }
+
   TextEditingValue? _latestPlatformTextEditingValue;
+
+  void _onReceivedTextEditingValueFromPlatform(TextEditingValue newValue) {
+    _latestPlatformTextEditingValue = newValue;
+
+    // We have to send the value back to the platform to acknowledge receipt.
+    _sendEditingValueToPlatform();
+  }
+
+  void _sendEditingValueToPlatform() {
+    if (isAttachedToIme) {
+      _log.fine('Sending TextEditingValue to platform: $currentTextEditingValue');
+      _inputConnection!.setEditingState(currentTextEditingValue!);
+    }
+  }
 
   void Function(TextInputAction)? _onPerformActionPressed;
   set onPerformActionPressed(Function(TextInputAction)? callback) => _onPerformActionPressed = callback;
@@ -105,20 +169,31 @@ class ImeAttributedTextEditingController
 
   @override
   void updateEditingValue(TextEditingValue value) {
-    _latestPlatformTextEditingValue = value;
+    _onReceivedTextEditingValueFromPlatform(value);
     _log.fine('New platform TextEditingValue: $value');
 
     if (_latestPlatformTextEditingValue != currentTextEditingValue) {
-      this
-        ..text = AttributedText(text: value.text)
-        ..selection = value.selection
-        ..composingRegion = value.composing;
+      _sendTextChangesToPlatform = false;
+      text = AttributedText(text: value.text);
+      selection = value.selection;
+      composingRegion = value.composing;
+      _sendTextChangesToPlatform = true;
     }
   }
 
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
     _log.fine('Received text editing deltas from platform...');
+
+    if (deltas.isEmpty || deltas.where((element) => element.deltaType != TextEditingDeltaType.equality).isEmpty) {
+      _log.fine(' - there are no deltas, or all deltas are equality. Ignoring.');
+      return;
+    }
+
+    // Prevent us from sending these changes back to the platform as we alter
+    // the _realController. Turn this flag back to `true` after the changes.
+    _sendTextChangesToPlatform = false;
+
     for (final delta in deltas) {
       _log.fine(
           'Text delta: ${delta.deltaType}, range: ${delta.deltaRange}, new selection: ${delta.selection}, new composing: ${delta.composing}');
@@ -151,7 +226,11 @@ class ImeAttributedTextEditingController
       }
     }
 
-    _latestPlatformTextEditingValue = currentTextEditingValue;
+    // Now that we're done applying all the deltas, start sending text changes
+    // to the platform again.
+    _sendTextChangesToPlatform = true;
+
+    _onReceivedTextEditingValueFromPlatform(currentTextEditingValue!);
   }
 
   @override

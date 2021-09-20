@@ -1,6 +1,7 @@
 import 'package:example/demos/supertextfield/_mobile_textfield_demo.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:logging/logging.dart';
 import 'package:super_editor/super_editor.dart';
 
 /// Demo of [SuperAndroidTextField].
@@ -11,8 +12,23 @@ class SuperAndroidTextFieldDemo extends StatefulWidget {
 
 class _SuperAndroidTextFieldDemoState extends State<SuperAndroidTextFieldDemo> {
   @override
+  void initState() {
+    super.initState();
+    initLoggers(Level.FINE, {androidTextFieldLog, imeTextFieldLog});
+  }
+
+  @override
+  void dispose() {
+    deactivateLoggers({androidTextFieldLog, imeTextFieldLog});
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return MobileSuperTextFieldDemo(
+      initialText: AttributedText(
+          text:
+              'This is a custom textfield implementation called SuperAndroidTextField. It is super long so that we can mess with scrolling. This drags it out even further so that we can get multiline scrolling, too. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin tempor sapien est, in eleifend purus rhoncus fringilla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nulla varius libero lorem, eget tincidunt ante porta accumsan. Morbi quis ante at nunc molestie ullamcorper.'),
       createTextField: _buildTextField,
     );
   }
