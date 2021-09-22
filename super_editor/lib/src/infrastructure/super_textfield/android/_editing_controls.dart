@@ -491,8 +491,18 @@ class _AndroidEditingOverlayControlsState extends State<AndroidEditingOverlayCon
 
   Widget _buildCollapsedHandle() {
     final extentTextPosition = widget.editingController.textController.selection.extent;
+    _log.finer('Collapsed handle text position: $extentTextPosition');
     final extentHandleOffsetInText = _textPositionToTextOffset(extentTextPosition);
+    _log.finer('Collapsed handle text offset: $extentHandleOffsetInText');
     final extentLineHeight = widget.textContentKey.currentState!.getCharacterBox(extentTextPosition).toRect().height;
+
+    if (extentHandleOffsetInText == const Offset(0, 0) && extentTextPosition.offset != 0) {
+      // The caret offset is (0, 0), but the caret text position isn't at the
+      // beginning of the text. This means that there's a layout timing
+      // issue and we should reschedule this calculation for the next frame.
+      _scheduleRebuildBecauseTextIsNotLaidOutYet();
+      return const SizedBox();
+    }
 
     if (extentLineHeight == 0) {
       _log.finer('Not building collapsed handle because the text layout reported a zero line-height');
