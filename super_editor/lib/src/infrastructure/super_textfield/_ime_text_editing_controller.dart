@@ -23,7 +23,7 @@ final _log = imeTextFieldLog;
 /// [ImeAttributedTextEditingController] wraps another [AttributedTextEditingController]
 /// and defers to that controller wherever possible.
 ///
-/// By default, an [ImeAttributedTextEditingController] is not connect to the platform
+/// By default, an [ImeAttributedTextEditingController] is not connected to the platform
 /// IME. To connect to the IME, call `attachToIme`. To detach from the IME, call
 /// `detachFromIme`.
 class ImeAttributedTextEditingController
@@ -31,7 +31,9 @@ class ImeAttributedTextEditingController
     implements AttributedTextEditingController, DeltaTextInputClient {
   ImeAttributedTextEditingController({
     final AttributedTextEditingController? controller,
-  }) : _realController = controller ?? AttributedTextEditingController() {
+    final void Function(RawFloatingCursorPoint)? onIOSFloatingCursorChange,
+  })  : _realController = controller ?? AttributedTextEditingController(),
+        _onIOSFloatingCursorChange = onIOSFloatingCursorChange {
     _realController.addListener(_onTextChange);
   }
 
@@ -42,6 +44,25 @@ class ImeAttributedTextEditingController
   }
 
   final AttributedTextEditingController _realController;
+
+  void Function(RawFloatingCursorPoint)? _onIOSFloatingCursorChange;
+
+  /// Sets the callback that's invoked whenever the floating cursor changes
+  /// position on iOS.
+  ///
+  /// The "floating cursor" is an iOS-specific UI element. When the user presses
+  /// and holds the space bar, a red caret appears over the given text block. As
+  /// the user moves their finger over the keyboard, the red "floating cursor"
+  /// moves across the screen in the same direction. The actual caret for the
+  /// text is grey, and it snaps to the text position that's nearest to the
+  /// "floating cursor".
+  ///
+  /// The floating cursor's position is reported by Flutter through a
+  /// `TextInputClient`, which is why this controller is required to offer this
+  /// information.
+  set onIOSFloatingCursorChange(void Function(RawFloatingCursorPoint)? callback) {
+    _onIOSFloatingCursorChange = callback;
+  }
 
   TextInputConnection? _inputConnection;
   bool _isKeyboardDisplayDesired = false;
@@ -248,7 +269,7 @@ class ImeAttributedTextEditingController
 
   @override
   void updateFloatingCursor(RawFloatingCursorPoint point) {
-    // No floating cursor on Android.
+    _onIOSFloatingCursorChange?.call(point);
   }
 
   @override

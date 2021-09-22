@@ -152,7 +152,8 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
     }
 
     _textEditingController = (widget.textController ?? ImeAttributedTextEditingController())
-      ..addListener(_onTextOrSelectionChange);
+      ..addListener(_onTextOrSelectionChange)
+      ..onIOSFloatingCursorChange = _onFloatingCursorChange;
 
     _textScrollController = TextScrollController(
       textController: _textEditingController,
@@ -184,12 +185,19 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
     }
 
     if (widget.textController != oldWidget.textController) {
-      _textEditingController.removeListener(_onTextOrSelectionChange);
+      _textEditingController
+        ..removeListener(_onTextOrSelectionChange)
+        ..onIOSFloatingCursorChange = null;
+
       if (widget.textController != null) {
         _textEditingController = widget.textController!;
       } else {
-        _textEditingController = ImeAttributedTextEditingController()..addListener(_onTextOrSelectionChange);
+        _textEditingController = ImeAttributedTextEditingController();
       }
+
+      _textEditingController
+        ..addListener(_onTextOrSelectionChange)
+        ..onIOSFloatingCursorChange = _onFloatingCursorChange;
     }
 
     if (widget.showDebugPaint != oldWidget.showDebugPaint) {
@@ -218,7 +226,9 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
   void dispose() {
     _removeHandles();
 
-    _textEditingController.removeListener(_onTextOrSelectionChange);
+    _textEditingController
+      ..removeListener(_onTextOrSelectionChange)
+      ..onIOSFloatingCursorChange = null;
     if (widget.textController == null) {
       _textEditingController.dispose();
     }
@@ -309,8 +319,7 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
     }
   }
 
-  @override
-  void updateFloatingCursor(RawFloatingCursorPoint point) {
+  void _onFloatingCursorChange(RawFloatingCursorPoint point) {
     _floatingCursorController.updateFloatingCursor(_textContentKey.currentState!, point);
   }
 
