@@ -255,7 +255,7 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield> with Sing
         });
       }
     } else {
-      _log.info('Detaching TextInputClient from TextInput.');
+      _log.info('Lost focus. Detaching TextInputClient from TextInput.');
       setState(() {
         _textEditingController.detachFromIme();
         _textEditingController.selection = const TextSelection.collapsed(offset: -1);

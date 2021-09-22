@@ -49,7 +49,6 @@ class IOSTextfieldToolbar extends StatelessWidget {
         style: TextButton.styleFrom(
           minimumSize: Size.zero,
           padding: EdgeInsets.zero,
-          // padding: const EdgeInsets.symmetric(vertical: 0),
         ),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12.0),

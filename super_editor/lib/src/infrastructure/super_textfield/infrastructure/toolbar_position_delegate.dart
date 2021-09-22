@@ -27,7 +27,7 @@ class ToolbarPositionDelegate extends SingleChildLayoutDelegate {
         ? desiredTopAnchorInTextField
         : (desiredBottomAnchorInTextField + Offset(0, childSize.height));
 
-    final desiredTopLeft = desiredAnchor - Offset(childSize.width / 2, childSize.height);
+    final desiredTopLeft = (desiredAnchor - Offset(childSize.width / 2, childSize.height)) + textFieldGlobalOffset;
 
     double x = max(desiredTopLeft.dx, -textFieldGlobalOffset.dx);
     x = min(x, size.width - childSize.width - textFieldGlobalOffset.dx);

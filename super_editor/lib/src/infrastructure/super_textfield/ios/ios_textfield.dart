@@ -129,7 +129,6 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
 
   late ImeAttributedTextEditingController _textEditingController;
   late FloatingCursorController _floatingCursorController;
-  TextInputConnection? _textInputConnection;
 
   final _magnifierLayerLink = LayerLink();
   late IOSEditingOverlayController _editingOverlayController;
@@ -215,7 +214,7 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
     // bring them back a frame later to avoid having the controls attempt
     // to access the layout of the text. The text layout is not immediately
     // available upon Hot Reload. Accessing it results in an exception.
-    _removeHandles();
+    _removeEditingOverlayControls();
 
     WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
       _showHandles();
@@ -224,7 +223,7 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
 
   @override
   void dispose() {
-    _removeHandles();
+    _removeEditingOverlayControls();
 
     _textEditingController
       ..removeListener(_onTextOrSelectionChange)
@@ -260,12 +259,11 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
         });
       }
     } else {
-      _log.info('Detaching TextInputClient from TextInput.');
+      _log.info('Lost focus. Detaching TextInputClient from TextInput.');
       setState(() {
-        _textInputConnection?.close();
-        _textInputConnection = null;
+        _textEditingController.detachFromIme();
         _textEditingController.selection = const TextSelection.collapsed(offset: -1);
-        _removeHandles();
+        _removeEditingOverlayControls();
       });
     }
   }
@@ -312,7 +310,7 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
 
   /// Removes [IOSEditingControls] from the app's [Overlay], if they're
   /// currently displayed.
-  void _removeHandles() {
+  void _removeEditingOverlayControls() {
     if (_controlsOverlayEntry != null) {
       _controlsOverlayEntry!.remove();
       _controlsOverlayEntry = null;

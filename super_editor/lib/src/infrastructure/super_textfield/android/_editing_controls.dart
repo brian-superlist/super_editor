@@ -432,43 +432,36 @@ class _AndroidEditingOverlayControlsState extends State<AndroidEditingOverlayCon
     final textFieldGlobalOffset =
         (widget.textFieldKey.currentContext!.findRenderObject() as RenderBox).localToGlobal(Offset.zero);
 
-    return Stack(
-      children: [
-        // TODO: figure out why this approach works. Why isn't the text field's
-        //       RenderBox offset stale when the keyboard opens or closes? Shouldn't
-        //       we end up with the previous offset because no rebuild happens?
-        //
-        //       Dis-proven theory: CompositedTransformFollower's link causes a rebuild of its
-        //       subtree whenever the linked transform changes.
-        //
-        //       Theory:
-        //         - Keyboard only effects vertical offsets, so global x offset
-        //           was never at risk
-        //         - The global y offset isn't used in the calculation at all
-        //         - If this same approach were used in a situation where the
-        //           distance between the left edge of the available space and the
-        //           text field changed, I think it would fail.
-        CompositedTransformFollower(
-          link: widget.textFieldLayerLink,
-          child: CustomSingleChildLayout(
-            delegate: ToolbarPositionDelegate(
-              textFieldGlobalOffset: textFieldGlobalOffset,
-              desiredTopAnchorInTextField: toolbarTopAnchor,
-              desiredBottomAnchorInTextField: toolbarBottomAnchor,
-            ),
-            child: IgnorePointer(
-              ignoring: !widget.editingController.isToolbarVisible,
-              child: AnimatedOpacity(
-                opacity: widget.editingController.isToolbarVisible ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 150),
-                child: Builder(builder: (context) {
-                  return widget.popoverToolbarBuilder(context, widget.editingController);
-                }),
-              ),
-            ),
-          ),
+    // TODO: figure out why this approach works. Why isn't the text field's
+    //       RenderBox offset stale when the keyboard opens or closes? Shouldn't
+    //       we end up with the previous offset because no rebuild happens?
+    //
+    //       Dis-proven theory: CompositedTransformFollower's link causes a rebuild of its
+    //       subtree whenever the linked transform changes.
+    //
+    //       Theory:
+    //         - Keyboard only effects vertical offsets, so global x offset
+    //           was never at risk
+    //         - The global y offset isn't used in the calculation at all
+    //         - If this same approach were used in a situation where the
+    //           distance between the left edge of the available space and the
+    //           text field changed, I think it would fail.
+    return CustomSingleChildLayout(
+      delegate: ToolbarPositionDelegate(
+        textFieldGlobalOffset: textFieldGlobalOffset,
+        desiredTopAnchorInTextField: toolbarTopAnchor,
+        desiredBottomAnchorInTextField: toolbarBottomAnchor,
+      ),
+      child: IgnorePointer(
+        ignoring: !widget.editingController.isToolbarVisible,
+        child: AnimatedOpacity(
+          opacity: widget.editingController.isToolbarVisible ? 1.0 : 0.0,
+          duration: const Duration(milliseconds: 150),
+          child: Builder(builder: (context) {
+            return widget.popoverToolbarBuilder(context, widget.editingController);
+          }),
         ),
-      ],
+      ),
     );
   }
 
