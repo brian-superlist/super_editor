@@ -32,6 +32,7 @@ class AndroidEditingOverlayControls extends StatefulWidget {
     required this.textFieldLayerLink,
     required this.textContentLayerLink,
     required this.handleColor,
+    required this.popoverToolbarBuilder,
     this.showDebugPaint = false,
   }) : super(key: key);
 
@@ -65,6 +66,12 @@ class AndroidEditingOverlayControls extends StatefulWidget {
 
   /// Whether to paint debug guides.
   final bool showDebugPaint;
+
+  /// Builder that constructs the popover toolbar that's displayed above
+  /// selected text.
+  ///
+  /// Typically, this bar includes actions like "copy", "cut", "paste", etc.
+  final Widget Function(BuildContext, AndroidEditingOverlayController) popoverToolbarBuilder;
 
   @override
   _AndroidEditingOverlayControlsState createState() => _AndroidEditingOverlayControlsState();
@@ -454,13 +461,9 @@ class _AndroidEditingOverlayControlsState extends State<AndroidEditingOverlayCon
               child: AnimatedOpacity(
                 opacity: widget.editingController.isToolbarVisible ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 150),
-                child: AndroidTextFieldToolbar(
-                  onCutPressed: () {},
-                  onCopyPressed: () {},
-                  onPastePressed: () {},
-                  onSharePressed: () {},
-                  onSelectAllPressed: () {},
-                ),
+                child: Builder(builder: (context) {
+                  return widget.popoverToolbarBuilder(context, widget.editingController);
+                }),
               ),
             ),
           ),

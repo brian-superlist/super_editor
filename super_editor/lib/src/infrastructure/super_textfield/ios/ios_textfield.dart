@@ -6,19 +6,20 @@ import 'package:flutter/services.dart';
 import 'package:super_editor/src/default_editor/super_editor.dart';
 import 'package:super_editor/src/infrastructure/_listenable_builder.dart';
 import 'package:super_editor/src/infrastructure/_logging.dart';
-import 'package:super_editor/src/infrastructure/super_textfield/ios/_editing_controls.dart';
 import 'package:super_editor/src/infrastructure/super_textfield/infrastructure/text_scrollview.dart';
+import 'package:super_editor/src/infrastructure/super_textfield/ios/_editing_controls.dart';
 
 import '../../attributed_text.dart';
 import '../../super_selectable_text.dart';
 import '../super_textfield.dart' hide SuperTextFieldScrollview, SuperTextFieldScrollviewState;
 import '_caret.dart';
 import '_floating_cursor.dart';
+import '_toolbar.dart';
 import '_user_interaction.dart';
 
+export '../infrastructure/magnifier.dart';
 export '_caret.dart';
 export '_handles.dart';
-export '../infrastructure/magnifier.dart';
 export '_toolbar.dart';
 export '_user_interaction.dart';
 
@@ -284,6 +285,7 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
           textContentLayerLink: _textContentLayerLink,
           textContentKey: _textContentKey,
           handleColor: widget.handlesColor,
+          popoverToolbarBuilder: _defaultPopoverToolbarBuilder,
           showDebugPaint: widget.showDebugPaint,
         );
       });
@@ -385,4 +387,39 @@ class _SuperIOSTextFieldState extends State<SuperIOSTextField> with SingleTicker
       ),
     );
   }
+}
+
+Widget _defaultPopoverToolbarBuilder(BuildContext context, IOSEditingOverlayController controller) {
+  return IOSTextfieldToolbar(
+    onCutPressed: () {
+      final textController = controller.textController;
+      final selection = textController.selection;
+      final selectedText = selection.textInside(textController.text.text);
+
+      textController.deleteSelectedText();
+
+      Clipboard.setData(ClipboardData(text: selectedText));
+    },
+    onCopyPressed: () {
+      final textController = controller.textController;
+      final selection = textController.selection;
+      final selectedText = selection.textInside(textController.text.text);
+
+      Clipboard.setData(ClipboardData(text: selectedText));
+    },
+    onPastePressed: () async {
+      final clipboardContent = await Clipboard.getData('text/plain');
+      if (clipboardContent == null || clipboardContent.text == null) {
+        return;
+      }
+
+      final textController = controller.textController;
+      final selection = textController.selection;
+      if (selection.isCollapsed) {
+        textController.insertAtCaret(text: clipboardContent.text!);
+      } else {
+        textController.replaceSelectionWithUnstyledText(replacementText: clipboardContent.text!);
+      }
+    },
+  );
 }

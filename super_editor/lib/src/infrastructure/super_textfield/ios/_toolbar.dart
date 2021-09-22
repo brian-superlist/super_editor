@@ -6,15 +6,11 @@ class IOSTextfieldToolbar extends StatelessWidget {
     required this.onCutPressed,
     required this.onCopyPressed,
     required this.onPastePressed,
-    required this.onLookUpPressed,
-    required this.onSharePressed,
   }) : super(key: key);
 
   final VoidCallback onCutPressed;
   final VoidCallback onCopyPressed;
   final VoidCallback onPastePressed;
-  final VoidCallback onLookUpPressed;
-  final VoidCallback onSharePressed;
 
   @override
   Widget build(BuildContext context) {
@@ -37,27 +33,19 @@ class IOSTextfieldToolbar extends StatelessWidget {
             onPressed: onPastePressed,
             title: 'Paste',
           ),
-          _buildButton(
-            onPressed: onLookUpPressed,
-            title: 'Look Up',
-          ),
-          _buildButton(
-            onPressed: onSharePressed,
-            title: 'Share...',
-          ),
         ],
       ),
     );
   }
 
   Widget _buildButton({
-    required VoidCallback onPressed,
     required String title,
+    required VoidCallback onPressed,
   }) {
     return SizedBox(
       height: 36,
       child: TextButton(
-        onPressed: onLookUpPressed,
+        onPressed: onPressed,
         style: TextButton.styleFrom(
           minimumSize: Size.zero,
           padding: EdgeInsets.zero,

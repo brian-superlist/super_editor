@@ -32,6 +32,7 @@ class SuperAndroidTextfield extends StatefulWidget {
     required this.handlesColor,
     this.lineHeight,
     this.textInputAction = TextInputAction.done,
+    this.popoverToolbarBuilder = _defaultAndroidToolbarBuilder,
     this.showDebugPaint = false,
     this.onPerformActionPressed,
   })  : assert(minLines == null || minLines == 1 || lineHeight != null, 'minLines > 1 requires a non-null lineHeight'),
@@ -114,6 +115,8 @@ class SuperAndroidTextfield extends StatefulWidget {
   /// Callback invoked when the user presses the "action" button
   /// on the keyboard, e.g., "done", "call", "emergency", etc.
   final Function(TextInputAction)? onPerformActionPressed;
+
+  final Widget Function(BuildContext, AndroidEditingOverlayController) popoverToolbarBuilder;
 
   @override
   _SuperAndroidTextfieldState createState() => _SuperAndroidTextfieldState();
@@ -273,7 +276,7 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield> with Sing
     }
   }
 
-  /// Displays [IOSEditingControls] in the app's [Overlay], if not already
+  /// Displays [AndroidEditingOverlayControls] in the app's [Overlay], if not already
   /// displayed.
   void _showEditingControlsOverlay() {
     if (_controlsOverlayEntry == null) {
@@ -286,6 +289,7 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield> with Sing
           textContentLayerLink: _textContentLayerLink,
           textContentKey: _textContentKey,
           handleColor: widget.handlesColor,
+          popoverToolbarBuilder: widget.popoverToolbarBuilder,
           showDebugPaint: widget.showDebugPaint,
         );
       });
@@ -378,4 +382,42 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield> with Sing
       ),
     );
   }
+}
+
+Widget _defaultAndroidToolbarBuilder(BuildContext context, AndroidEditingOverlayController controller) {
+  return AndroidTextFieldToolbar(
+    onCutPressed: () {
+      final textController = controller.textController;
+      final selection = textController.selection;
+      final selectedText = selection.textInside(textController.text.text);
+
+      textController.deleteSelectedText();
+
+      Clipboard.setData(ClipboardData(text: selectedText));
+    },
+    onCopyPressed: () {
+      final textController = controller.textController;
+      final selection = textController.selection;
+      final selectedText = selection.textInside(textController.text.text);
+
+      Clipboard.setData(ClipboardData(text: selectedText));
+    },
+    onPastePressed: () async {
+      final clipboardContent = await Clipboard.getData('text/plain');
+      if (clipboardContent == null || clipboardContent.text == null) {
+        return;
+      }
+
+      final textController = controller.textController;
+      final selection = textController.selection;
+      if (selection.isCollapsed) {
+        textController.insertAtCaret(text: clipboardContent.text!);
+      } else {
+        textController.replaceSelectionWithUnstyledText(replacementText: clipboardContent.text!);
+      }
+    },
+    onSelectAllPressed: () {
+      controller.textController.selectAll();
+    },
+  );
 }

@@ -10,7 +10,6 @@ import 'package:super_editor/src/infrastructure/super_textfield/ios/_magnifier.d
 import 'package:super_editor/src/infrastructure/super_textfield/super_textfield.dart';
 
 import '_handles.dart';
-import '_toolbar.dart';
 
 final _log = iosTextFieldLog;
 
@@ -33,6 +32,7 @@ class IOSEditingControls extends StatefulWidget {
     required this.textFieldLayerLink,
     required this.textContentLayerLink,
     required this.handleColor,
+    required this.popoverToolbarBuilder,
     this.showDebugPaint = false,
   }) : super(key: key);
 
@@ -66,6 +66,12 @@ class IOSEditingControls extends StatefulWidget {
 
   /// Whether to paint debug guides.
   final bool showDebugPaint;
+
+  /// Builder that constructs the popover toolbar that's displayed above
+  /// selected text.
+  ///
+  /// Typically, this bar includes actions like "copy", "cut", "paste", etc.
+  final Widget Function(BuildContext, IOSEditingOverlayController) popoverToolbarBuilder;
 
   @override
   _IOSEditingControlsState createState() => _IOSEditingControlsState();
@@ -359,13 +365,9 @@ class _IOSEditingControlsState extends State<IOSEditingControls> with WidgetsBin
               child: AnimatedOpacity(
                 opacity: widget.editingController.isToolbarVisible ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 150),
-                child: IOSTextfieldToolbar(
-                  onCutPressed: () {},
-                  onCopyPressed: () {},
-                  onPastePressed: () {},
-                  onSharePressed: () {},
-                  onLookUpPressed: () {},
-                ),
+                child: Builder(builder: (context) {
+                  return widget.popoverToolbarBuilder(context, widget.editingController);
+                }),
               ),
             ),
           ),

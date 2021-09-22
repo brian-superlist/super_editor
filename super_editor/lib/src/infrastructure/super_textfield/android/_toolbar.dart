@@ -6,14 +6,12 @@ class AndroidTextFieldToolbar extends StatelessWidget {
     required this.onCutPressed,
     required this.onCopyPressed,
     required this.onPastePressed,
-    required this.onSharePressed,
     required this.onSelectAllPressed,
   }) : super(key: key);
 
   final VoidCallback onCutPressed;
   final VoidCallback onCopyPressed;
   final VoidCallback onPastePressed;
-  final VoidCallback onSharePressed;
   final VoidCallback onSelectAllPressed;
 
   @override
@@ -38,10 +36,6 @@ class AndroidTextFieldToolbar extends StatelessWidget {
             title: 'Paste',
           ),
           _buildButton(
-            onPressed: onSharePressed,
-            title: 'Share',
-          ),
-          _buildButton(
             onPressed: onSelectAllPressed,
             title: 'Select All',
           ),
@@ -51,11 +45,11 @@ class AndroidTextFieldToolbar extends StatelessWidget {
   }
 
   Widget _buildButton({
-    required VoidCallback onPressed,
     required String title,
+    required VoidCallback onPressed,
   }) {
     return TextButton(
-      onPressed: onSelectAllPressed,
+      onPressed: onPressed,
       style: TextButton.styleFrom(
         padding: const EdgeInsets.symmetric(vertical: 16),
       ),
