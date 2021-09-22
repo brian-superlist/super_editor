@@ -19,7 +19,7 @@ import '../keyboard.dart';
 import '../multi_tap_gesture.dart';
 export '_ime_text_editing_controller.dart';
 
-final _log = Logger(scope: 'super_textfield.dart');
+final _log = textFieldLog;
 
 /// Highly configurable textfield intended for web and desktop uses.
 ///
@@ -402,7 +402,7 @@ class _SuperTextFieldGestureInteractorState extends State<SuperTextFieldGestureI
   SuperTextFieldScrollviewState get _textScroll => widget.textScrollKey.currentState!;
 
   void _onTapDown(TapDownDetails details) {
-    _log.log('_onTapDown', 'EditableDocument: onTapDown()');
+    _log.finer('_onTapDown: EditableDocument: onTapDown()');
     _selectionType = _SelectionType.position;
 
     final textOffset = _getTextOffset(details.localPosition);
@@ -427,7 +427,7 @@ class _SuperTextFieldGestureInteractorState extends State<SuperTextFieldGestureI
   void _onDoubleTapDown(TapDownDetails details) {
     _selectionType = _SelectionType.word;
 
-    _log.log('_onDoubleTapDown', 'EditableDocument: onDoubleTap()');
+    _log.finer('_onDoubleTapDown - EditableDocument: onDoubleTap()');
 
     final tapTextPosition = _getPositionAtOffset(details.localPosition);
 
@@ -449,7 +449,7 @@ class _SuperTextFieldGestureInteractorState extends State<SuperTextFieldGestureI
   void _onTripleTapDown(TapDownDetails details) {
     _selectionType = _SelectionType.paragraph;
 
-    _log.log('_onTripleTapDown', 'EditableDocument: onTripleTapDown()');
+    _log.finer('_onTripleTapDown - EditableDocument: onTripleTapDown()');
 
     final tapTextPosition = _getPositionAtOffset(details.localPosition);
 
@@ -473,7 +473,7 @@ class _SuperTextFieldGestureInteractorState extends State<SuperTextFieldGestureI
   }
 
   void _onPanStart(DragStartDetails details) {
-    _log.log('_onPanStart', '_onPanStart()');
+    _log.finer('_onPanStart()');
     _dragStartInViewport = details.localPosition;
     _dragStartInText = _getTextOffset(_dragStartInViewport!);
 
@@ -483,12 +483,12 @@ class _SuperTextFieldGestureInteractorState extends State<SuperTextFieldGestureI
   }
 
   void _onPanUpdate(DragUpdateDetails details) {
-    _log.log('_onPanUpdate', '_onPanUpdate()');
+    _log.finer('_onPanUpdate()');
     setState(() {
       _dragEndInViewport = details.localPosition;
       _dragEndInText = _getTextOffset(_dragEndInViewport!);
       _dragRectInViewport = Rect.fromPoints(_dragStartInViewport!, _dragEndInViewport!);
-      _log.log('_onPanUpdate', ' - drag rect: $_dragRectInViewport');
+      _log.finer('_onPanUpdate - drag rect: $_dragRectInViewport');
       _updateCursorStyle(details.localPosition);
       _updateDragSelection();
 
@@ -598,7 +598,7 @@ class _SuperTextFieldGestureInteractorState extends State<SuperTextFieldGestureI
 
   void _scrollIfNearBoundary() {
     if (_dragEndInViewport == null) {
-      _log.log('_scrollIfNearBoundary', "Can't scroll near boundary because _dragEndInViewport is null");
+      _log.finer("_scrollIfNearBoundary - Can't scroll near boundary because _dragEndInViewport is null");
       assert(_dragEndInViewport != null);
       return;
     }
@@ -642,7 +642,7 @@ class _SuperTextFieldGestureInteractorState extends State<SuperTextFieldGestureI
 
   void _startScrollingToStart() {
     if (_dragEndInViewport == null) {
-      _log.log('_scrollUp', "Can't scroll up because _dragEndInViewport is null");
+      _log.finer("_scrollUp - Can't scroll up because _dragEndInViewport is null");
       assert(_dragEndInViewport != null);
       return;
     }
@@ -660,7 +660,7 @@ class _SuperTextFieldGestureInteractorState extends State<SuperTextFieldGestureI
 
   void _startScrollingToEnd() {
     if (_dragEndInViewport == null) {
-      _log.log('_scrollDown', "Can't scroll down because _dragEndInViewport is null");
+      _log.finer("_scrollDown - Can't scroll down because _dragEndInViewport is null");
       assert(_dragEndInViewport != null);
       return;
     }
@@ -817,9 +817,9 @@ class SuperTextFieldKeyboardInteractor extends StatefulWidget {
 
 class _SuperTextFieldKeyboardInteractorState extends State<SuperTextFieldKeyboardInteractor> {
   KeyEventResult _onKeyPressed(FocusNode focusNode, RawKeyEvent keyEvent) {
-    _log.log('_onKeyPressed', 'keyEvent: ${keyEvent.character}');
+    _log.finer('_onKeyPressed - keyEvent: ${keyEvent.character}');
     if (keyEvent is! RawKeyDownEvent) {
-      _log.log('_onKeyPressed', ' - not a "down" event. Ignoring.');
+      _log.finer('_onKeyPressed - not a "down" event. Ignoring.');
       return KeyEventResult.ignored;
     }
 
@@ -1022,12 +1022,12 @@ class SuperTextFieldScrollviewState extends State<SuperTextFieldScrollview> with
             widget.padding.vertical / 2,
         0);
 
-    _log.log('_ensureSelectionExtentIsVisible', 'Ensuring extent is visible.');
-    _log.log('_ensureSelectionExtentIsVisible', ' - interaction size: ${myBox.size}');
-    _log.log('_ensureSelectionExtentIsVisible', ' - scroll extent: ${widget.scrollController.offset}');
-    _log.log('_ensureSelectionExtentIsVisible', ' - extent rect: $extentOffset');
-    _log.log('_ensureSelectionExtentIsVisible', ' - beyond top: $beyondTopExtent');
-    _log.log('_ensureSelectionExtentIsVisible', ' - beyond bottom: $beyondBottomExtent');
+    _log.finer('_ensureSelectionExtentIsVisible - Ensuring extent is visible.');
+    _log.finer('_ensureSelectionExtentIsVisible    - interaction size: ${myBox.size}');
+    _log.finer('_ensureSelectionExtentIsVisible    - scroll extent: ${widget.scrollController.offset}');
+    _log.finer('_ensureSelectionExtentIsVisible    - extent rect: $extentOffset');
+    _log.finer('_ensureSelectionExtentIsVisible    - beyond top: $beyondTopExtent');
+    _log.finer('_ensureSelectionExtentIsVisible    - beyond bottom: $beyondBottomExtent');
 
     if (beyondTopExtent > 0) {
       final newScrollPosition = (widget.scrollController.offset - beyondTopExtent)
@@ -1291,7 +1291,7 @@ class DefaultSuperTextFieldKeyboardHandlers {
     }
 
     if (keyEvent.logicalKey == LogicalKeyboardKey.arrowLeft) {
-      _log.log('moveUpDownLeftAndRightWithArrowKeys', ' - handling left arrow key');
+      _log.finer('moveUpDownLeftAndRightWithArrowKeys - handling left arrow key');
 
       final movementModifiers = <String, dynamic>{
         'movement_unit': 'character',
@@ -1309,7 +1309,7 @@ class DefaultSuperTextFieldKeyboardHandlers {
         movementModifiers: movementModifiers,
       );
     } else if (keyEvent.logicalKey == LogicalKeyboardKey.arrowRight) {
-      _log.log('moveUpDownLeftAndRightWithArrowKeys', ' - handling right arrow key');
+      _log.finer('moveUpDownLeftAndRightWithArrowKeys - handling right arrow key');
 
       final movementModifiers = <String, dynamic>{
         'movement_unit': 'character',
@@ -1327,14 +1327,14 @@ class DefaultSuperTextFieldKeyboardHandlers {
         movementModifiers: movementModifiers,
       );
     } else if (keyEvent.logicalKey == LogicalKeyboardKey.arrowUp) {
-      _log.log('moveUpDownLeftAndRightWithArrowKeys', ' - handling up arrow key');
+      _log.finer('moveUpDownLeftAndRightWithArrowKeys - handling up arrow key');
       controller.moveCaretVertically(
         selectableTextState: selectableTextState,
         expandSelection: keyEvent.isShiftPressed,
         moveUp: true,
       );
     } else if (keyEvent.logicalKey == LogicalKeyboardKey.arrowDown) {
-      _log.log('moveUpDownLeftAndRightWithArrowKeys', ' - handling down arrow key');
+      _log.finer('moveUpDownLeftAndRightWithArrowKeys - handling down arrow key');
       controller.moveCaretVertically(
         selectableTextState: selectableTextState,
         expandSelection: keyEvent.isShiftPressed,
@@ -1451,7 +1451,135 @@ class AttributedTextEditingController with ChangeNotifier {
   })  : _text = text ?? AttributedText(),
         _selection = selection ?? const TextSelection.collapsed(offset: -1),
         _composingRegion = composingRegion ?? TextRange.empty {
+    _updateComposingAttributions();
     text?.addListener(notifyListeners);
+  }
+
+  TextSelection _selection;
+  TextSelection get selection => _selection;
+  set selection(TextSelection newValue) {
+    if (newValue != _selection) {
+      _selection = newValue;
+      _updateComposingAttributions();
+      notifyListeners();
+    }
+  }
+
+  bool isSelectionWithinTextBounds(TextSelection selection) {
+    return selection.start <= text.text.length && selection.end <= text.text.length;
+  }
+
+  /// Updates the [composingAttributions] based on the current [selection]
+  /// and [text].
+  void _updateComposingAttributions() {
+    if (selection.isCollapsed) {
+      _composingAttributions
+        ..clear()
+        ..addAll(text.getAllAttributionsAt(
+          max(selection.extentOffset - 1, 0),
+        ));
+    } else {
+      _composingAttributions
+        ..clear()
+        ..addAll(text.getAllAttributionsThroughout(
+          TextRange(start: selection.start, end: selection.end),
+        ));
+    }
+  }
+
+  final _composingAttributions = <Attribution>{};
+
+  /// Attributions that will be applied to the next inserted character(s).
+  Set<Attribution> get composingAttributions => Set.from(_composingAttributions);
+
+  /// Replaces all existing [composingAttributions] with the given [attributions].
+  set composingAttributions(Set<Attribution> attributions) {
+    _composingAttributions
+      ..clear()
+      ..addAll(attributions);
+    notifyListeners();
+  }
+
+  /// Adds the given [attributions] to [composingAttributions].
+  void addComposingAttributions(Set<Attribution> attributions) {
+    _composingAttributions.addAll(attributions);
+    notifyListeners();
+  }
+
+  /// Toggles the presence of each of the given [attributions] within
+  /// the [composingAttributions].
+  void toggleComposingAttributions(Set<Attribution> attributions) {
+    if (attributions.isEmpty) {
+      return;
+    }
+
+    for (final attribution in attributions) {
+      if (_composingAttributions.contains(attribution)) {
+        _composingAttributions.remove(attribution);
+      } else {
+        _composingAttributions.add(attribution);
+      }
+    }
+
+    notifyListeners();
+  }
+
+  /// Removes the given [attributions] from [composingAttributions].
+  void removeComposingAttributions(Set<Attribution> attributions) {
+    _composingAttributions.removeWhere((attribution) => _composingAttributions.contains(attribution));
+    notifyListeners();
+  }
+
+  /// Removes all attributions from [composingAttributions].
+  void clearComposingAttributions() {
+    if (_composingAttributions.isNotEmpty) {
+      _composingAttributions.clear();
+      notifyListeners();
+    }
+  }
+
+  /// Toggles the presence of each of the given [attributions] within
+  /// the text in the [selection].
+  void toggleSelectionAttributions(List<Attribution> attributions) {
+    if (attributions.isEmpty) {
+      return;
+    }
+
+    if (selection.isCollapsed) {
+      return;
+    }
+
+    for (final attribution in attributions) {
+      print('Toggling attribution $attribution for selection: $selection');
+      _text.toggleAttribution(
+        attribution,
+        TextRange(start: selection.start, end: selection.end - 1),
+      );
+    }
+
+    notifyListeners();
+  }
+
+  /// Removes all attributions from the text that is currently selected.
+  void clearSelectionAttributions() {
+    if (selection.isCollapsed) {
+      return;
+    }
+
+    _text.clearAttributions(
+      TextRange(start: selection.start, end: selection.end - 1),
+    );
+
+    notifyListeners();
+  }
+
+  TextRange _composingRegion;
+  TextRange get composingRegion => _composingRegion;
+  set composingRegion(TextRange newValue) {
+    if (newValue != _composingRegion) {
+      _composingRegion = newValue;
+      notifyListeners();
+    }
   }
 
   void updateTextAndSelection({
@@ -1491,17 +1619,140 @@ class AttributedTextEditingController with ChangeNotifier {
     _text.addListener(notifyListeners);
   }
 
+  /// Inserts the given [text] at the current caret position.
+  ///
+  /// The current [composingAttributions] are applied to the given
+  /// [text] and the caret is moved to the end of the given [text].
+  ///
+  /// If the current [selection] is expanded, this method does nothing,
+  /// because there is no conceptual caret with an expanded selection.
+  void insertAtCaret({
+    required String text,
+    TextRange? newComposingRegion,
+  }) {
+    if (!selection.isCollapsed) {
+      _log.warning('Attempted to insert text at the caret with an expanded selection. Selection: $selection');
+    }
+
+    final updatedText = _text.insertString(
+      textToInsert: text,
+      startOffset: selection.extentOffset,
+      applyAttributions: Set.from(composingAttributions),
+    );
+
+    final updatedSelection = _moveSelectionForInsertion(
+      selection: selection,
+      insertIndex: selection.extentOffset,
+      newTextLength: text.length,
+    );
+
+    update(
+      text: updatedText,
+      selection: updatedSelection,
+      composingRegion: newComposingRegion,
+    );
+  }
+
+  /// Inserts the given [text] at the current caret position, extending whatever
+  /// attributions exist at the offset before the insertion.
+  ///
+  /// The caret is moved to the end of the inserted [text].
+  ///
+  /// If the current [selection] is expanded, this method does nothing,
+  /// because there is no conceptual caret with an expanded selection.
+  void insertAtCaretWithUpstreamAttributions({
+    required String text,
+    TextRange? newComposingRegion,
+  }) {
+    if (!selection.isCollapsed) {
+      _log.warning('Attempted to insert text at the caret with an expanded selection. Selection: $selection');
+    }
+
+    final upstreamAttributions = _text.getAllAttributionsAt(max(selection.extentOffset - 1, 0));
+
+    final updatedText = _text.insertString(
+      textToInsert: text,
+      startOffset: selection.extentOffset,
+      applyAttributions: upstreamAttributions,
+    );
+
+    final updatedSelection = _moveSelectionForInsertion(
+      selection: selection,
+      insertIndex: selection.extentOffset,
+      newTextLength: text.length,
+    );
+
+    update(
+      text: updatedText,
+      selection: updatedSelection,
+      composingRegion: newComposingRegion,
+    );
+  }
+
+  /// Inserts the given [attributedText] at the current caret position.
+  ///
+  /// The caret is moved to the end of the inserted [text].
+  ///
+  /// If the current [selection] is expanded, this method does nothing,
+  /// because there is no conceptual caret with an expanded selection.
+  void insertAttributedTextAtCaret({
+    required AttributedText attributedText,
+    TextRange? newComposingRegion,
+  }) {
+    if (!selection.isCollapsed) {
+      _log.warning('Attempted to insert text at the caret with an expanded selection. Selection: $selection');
+    }
+
+    final updatedText = _text.insert(
+      textToInsert: attributedText,
+      startOffset: selection.extentOffset,
+    );
+
+    final updatedSelection = _moveSelectionForInsertion(
+      selection: selection,
+      insertIndex: selection.extentOffset,
+      newTextLength: text.text.length,
+    );
+
+    update(
+      text: updatedText,
+      selection: updatedSelection,
+      composingRegion: newComposingRegion,
+    );
+  }
+
+  /// Inserts the given [text] at the current caret position without any
+  /// attributions applied to the [text].
+  ///
+  /// If the current [selection] is expanded, this method does nothing,
+  /// because there is no conceptual caret with an expanded selection.
+  void insertAtCaretUnstyled({
+    required String text,
+    TextRange? newComposingRegion,
+  }) {
+    if (!selection.isCollapsed) {
+      _log.warning('Attempted to insert text at the caret with an expanded selection. Selection: $selection');
+    }
+
+    final updatedText = _text.insertString(
+      textToInsert: text,
+      startOffset: selection.extentOffset,
+    );
+
+    final updatedSelection = _moveSelectionForInsertion(
+      selection: selection,
+      insertIndex: selection.extentOffset,
+      newTextLength: text.length,
+    );
+
+    update(
+      text: updatedText,
+      selection: updatedSelection,
+      composingRegion: newComposingRegion,
+    );
+  }
+
   /// Inserts [newText], starting at the given [insertIndex].
-  ///
-  /// If the current [selection] is collapsed, and the [insertIndex] is the
-  /// same as the collapsed selection, then the inserted text is treated as
-  /// user input. As such, the current [composingAttributions] are applied to the
-  /// inserted text.
-  ///
-  /// If the current [selection] is expanded, or if the current [selection]
-  /// is not the same as the [insertIndex], then the given [newText] is inserted
-  /// without any attributions. To insert text with explicit attributions, see
-  /// [insertAttributedText].
   ///
   /// The [selection] is updated to [newSelection], if provided, otherwise
   /// a best-guess attempt is made to adjust the selection based on an
@@ -1510,44 +1761,6 @@ class AttributedTextEditingController with ChangeNotifier {
   /// The [composingRegion] is updated to [newComposingRegion], if provided,
   /// otherwise the [composingRegion] is set to `TextRange.empty`.
   void insert({
-    required String newText,
-    required int insertIndex,
-    TextSelection? newSelection,
-    TextRange? newComposingRegion,
-  }) {
-    final updatedText = _text.insertString(
-      textToInsert: newText,
-      startOffset: insertIndex,
-      applyAttributions: Set.from(composingAttributions),
-    );
-    // We must calculate the updated position before changing the text value
-    // to avoid (possibly) automatically altering the current selection.
-    final updatedSelection = newSelection ??
-        _moveSelectionForInsertion(
-          selection: _selection,
-          insertIndex: insertIndex,
-          newTextLength: newText.length,
-        );
-
-    text = updatedText;
-    selection = updatedSelection;
-    _updateComposingAttributions();
-    // TODO: do we need to implement composing region update behavior like selections?
-    composingRegion = newComposingRegion ?? TextRange.empty;
-  }
-
-  /// Inserts the given attributed [newText] at [insertIndex].
-  ///
-  /// No additional attributions are applied to [newText], beyond the attributions
-  /// that it already includes.
-  ///
-  /// The [selection] is updated to [newSelection], if provided, otherwise
-  /// a best-guess attempt is made to adjust the selection based on an
-  /// insertion action.
-  ///
-  /// The [composingRegion] is updated to [newComposingRegion], if provided,
-  /// otherwise the [composingRegion] is set to `TextRange.empty`.
-  void insertAttributedText({
     required AttributedText newText,
     required int insertIndex,
     TextSelection? newSelection,
@@ -1557,8 +1770,7 @@ class AttributedTextEditingController with ChangeNotifier {
       textToInsert: newText,
       startOffset: insertIndex,
     );
-    // We must calculate the updated position before changing the text value
-    // to avoid (possibly) automatically altering the current selection.
+
     final updatedSelection = newSelection ??
         _moveSelectionForInsertion(
           selection: _selection,
@@ -1566,11 +1778,126 @@ class AttributedTextEditingController with ChangeNotifier {
           newTextLength: newText.text.length,
         );
 
-    text = updatedText;
-    selection = updatedSelection;
-    _updateComposingAttributions();
-    // TODO: do we need to implement composing region update behavior like selections?
-    composingRegion = newComposingRegion ?? TextRange.empty;
+    update(
+      text: updatedText,
+      selection: updatedSelection,
+      composingRegion: newComposingRegion ?? TextRange.empty,
+    );
+  }
+
+  TextSelection _moveSelectionForInsertion({
+    required TextSelection selection,
+    required int insertIndex,
+    required int newTextLength,
+  }) {
+    int newBaseOffset = selection.baseOffset;
+    if ((selection.baseOffset == insertIndex && selection.isCollapsed) || (selection.baseOffset > insertIndex)) {
+      newBaseOffset = selection.baseOffset + newTextLength;
+    }
+
+    final newExtentOffset =
+        selection.extentOffset >= insertIndex ? selection.extentOffset + newTextLength : selection.extentOffset;
+
+    return TextSelection(
+      baseOffset: newBaseOffset,
+      extentOffset: newExtentOffset,
+    );
+  }
+
+  /// Replaces the currently selected text with [replacementText] and collapses
+  /// the selection at the end of [replacementText].
+  ///
+  /// To insert text after a caret (collapsed selection), use [insertAtCaret].
+  void replaceSelectionWithTextAndUpstreamAttributions({
+    required String replacementText,
+    TextRange? newComposingRegion,
+  }) {
+    if (selection.isCollapsed) {
+      return;
+    }
+
+    final upstreamAttributions = _text.getAllAttributionsAt(max(selection.extentOffset - 1, 0));
+
+    var updatedText = _text.removeRegion(
+      startOffset: selection.baseOffset,
+      endOffset: selection.extentOffset,
+    );
+    updatedText = updatedText.insertString(
+      textToInsert: replacementText,
+      startOffset: selection.baseOffset,
+      applyAttributions: upstreamAttributions,
+    );
+    final updatedSelection = TextSelection.collapsed(
+      offset: selection.baseOffset + replacementText.length,
+    );
+
+    update(
+      text: updatedText,
+      selection: updatedSelection,
+      composingRegion: newComposingRegion,
+    );
+  }
+
+  /// Replaces the currently selected text with [attributedReplacementText] and
+  /// collapses the selection at the end of [attributedReplacementText].
+  ///
+  /// To insert text after a caret (collapsed selection), use [insertAtCaret].
+  void replaceSelectionWithAttributedText({
+    required AttributedText attributedReplacementText,
+    TextRange? newComposingRegion,
+  }) {
+    if (selection.isCollapsed) {
+      return;
+    }
+
+    var updatedText = _text.removeRegion(
+      startOffset: selection.baseOffset,
+      endOffset: selection.extentOffset,
+    );
+    updatedText = updatedText.insert(
+      textToInsert: attributedReplacementText,
+      startOffset: selection.baseOffset,
+    );
+    final updatedSelection = TextSelection.collapsed(
+      offset: selection.baseOffset + attributedReplacementText.text.length,
+    );
+
+    update(
+      text: updatedText,
+      selection: updatedSelection,
+      composingRegion: newComposingRegion,
+    );
+  }
+
+  /// Replaces the currently selected text with un-styled [text] and collapses
+  /// the selection at the end of the [text].
+  ///
+  /// To insert text after a caret (collapsed selection), use [insertAtCaret].
+  void replaceSelectionWithUnstyledText({
+    required String replacementText,
+    TextRange? newComposingRegion,
+  }) {
+    if (selection.isCollapsed) {
+      return;
+    }
+
+    var updatedText = _text.removeRegion(
+      startOffset: selection.baseOffset,
+      endOffset: selection.extentOffset,
+    );
+    updatedText = updatedText.insertString(
+      textToInsert: replacementText,
+      startOffset: selection.baseOffset,
+    );
+    final updatedSelection = TextSelection.collapsed(
+      offset: selection.baseOffset + replacementText.length,
+    );
+
+    update(
+      text: updatedText,
+      selection: updatedSelection,
+      composingRegion: newComposingRegion,
+    );
   }
 
   /// Removes the text between [from] (inclusive) and [to] (exclusive), and replaces that
@@ -1603,22 +1930,66 @@ class AttributedTextEditingController with ChangeNotifier {
     composingRegion = newComposingRegion ?? TextRange.empty;
   }
 
-  TextSelection _moveSelectionForInsertion({
-    required TextSelection selection,
-    required int insertIndex,
-    required int newTextLength,
+  /// Deletes the character before the currently collapsed [selection] and
+  /// moves [selection] upstream by one character.
+  ///
+  /// Does nothing if [selection] is not collapsed.
+  void deletePreviousCharacter({
+    TextRange? newComposingRegion,
   }) {
-    int newBaseOffset = selection.baseOffset;
-    if ((selection.baseOffset == insertIndex && selection.isCollapsed) || (selection.baseOffset > insertIndex)) {
-      newBaseOffset = selection.baseOffset + newTextLength;
+    if (!selection.isCollapsed) {
+      return;
     }
 
-    final newExtentOffset =
-        selection.extentOffset >= insertIndex ? selection.extentOffset + newTextLength : selection.extentOffset;
+    if (selection.extentOffset == 0) {
+      return;
+    }
 
-    return TextSelection(
-      baseOffset: newBaseOffset,
-      extentOffset: newExtentOffset,
+    delete(
+      from: selection.extentOffset - 1,
+      to: selection.extentOffset,
+      newSelection: TextSelection.collapsed(offset: selection.extentOffset - 1),
+      newComposingRegion: newComposingRegion,
+    );
+  }
+
+  /// Deletes the character after the currently collapsed [selection].
+  ///
+  /// Does nothing if [selection] is not collapsed.
+  void deleteNextCharacter({
+    TextRange? newComposingRegion,
+  }) {
+    if (!selection.isCollapsed) {
+      return;
+    }
+
+    if (selection.extentOffset >= text.text.length) {
+      return;
+    }
+
+    delete(
+      from: selection.extentOffset,
+      to: selection.extentOffset + 1,
+      newSelection: TextSelection.collapsed(offset: selection.extentOffset),
+      newComposingRegion: newComposingRegion,
+    );
+  }
+
+  /// Deletes the text within the current [selection].
+  ///
+  /// Does nothing if [selection] is collapsed.
+  void deleteSelection({
+    TextRange? newComposingRegion,
+  }) {
+    if (selection.isCollapsed) {
+      return;
+    }
+
+    delete(
+      from: selection.baseOffset,
+      to: selection.extentOffset,
+      newSelection: TextSelection.collapsed(offset: selection.baseOffset),
+      newComposingRegion: newComposingRegion,
     );
   }
 
@@ -1680,130 +2051,24 @@ class AttributedTextEditingController with ChangeNotifier {
     }
   }
 
-  TextSelection _selection;
-  TextSelection get selection => _selection;
-  set selection(TextSelection newValue) {
-    if (newValue != _selection) {
-      _selection = newValue;
-      _updateComposingAttributions();
-      notifyListeners();
+  void update({
+    AttributedText? text,
+    TextSelection? selection,
+    TextRange? composingRegion,
+  }) {
+    if (text != null) {
+      _switchText(text);
     }
-  }
-
-  bool isSelectionWithinTextBounds(TextSelection selection) {
-    return selection.start <= text.text.length && selection.end <= text.text.length;
-  }
-
-  /// Updates the [composingAttributions] based on the current [selection]
-  /// and [text].
-  void _updateComposingAttributions() {
-    if (selection.isCollapsed) {
-      _composingAttributions
-        ..clear()
-        ..addAll(text.getAllAttributionsAt(
-          max(selection.extentOffset - 1, 0),
-        ));
-    } else {
-      _composingAttributions
-        ..clear()
-        ..addAll(text.getAllAttributionsThroughout(
-          TextRange(start: selection.start, end: selection.end),
-        ));
+    if (selection != null) {
+      _selection = selection;
     }
-  }
-
-  final _composingAttributions = <Attribution>[];
-
-  /// Attributions that will be applied to the next inserted character(s).
-  List<Attribution> get composingAttributions => List.from(_composingAttributions);
-
-  /// Adds the given [attributions] to [composingAttributions].
-  void addComposingAttributions(List<Attribution> attributions) {
-    _composingAttributions.addAll(attributions);
-    notifyListeners();
-  }
-
-  /// Toggles the presence of each of the given [attributions] within
-  /// the [composingAttributions].
-  void toggleComposingAttributions(List<Attribution> attributions) {
-    if (attributions.isEmpty) {
-      return;
+    if (composingRegion != null) {
+      _composingRegion = composingRegion;
     }
 
-    for (final attribution in attributions) {
-      if (_composingAttributions.contains(attribution)) {
-        _composingAttributions.remove(attribution);
-      } else {
-        _composingAttributions.add(attribution);
-      }
-    }
+    _updateComposingAttributions();
 
     notifyListeners();
-  }
-
-  /// Removes the given [attributions] from [composingAttributions].
-  void removeComposingAttributions(List<Attribution> attributions) {
-    _composingAttributions.removeWhere((attribution) => _composingAttributions.contains(attribution));
-    notifyListeners();
-  }
-
-  /// Replaces all existing [composingAttributions] with the given [attributions].
-  set composingAttributions(List<Attribution> attributions) {
-    _composingAttributions
-      ..clear()
-      ..addAll(attributions);
-    notifyListeners();
-  }
-
-  /// Removes all attributions from [composingAttributions].
-  void clearComposingAttributions() {
-    if (_composingAttributions.isNotEmpty) {
-      _composingAttributions.clear();
-      notifyListeners();
-    }
-  }
-
-  /// Toggles the presence of each of the given [attributions] within
-  /// the text in the [selection].
-  void toggleSelectionAttributions(List<Attribution> attributions) {
-    if (attributions.isEmpty) {
-      return;
-    }
-
-    if (selection.isCollapsed) {
-      return;
-    }
-
-    for (final attribution in attributions) {
-      _text.toggleAttribution(
-        attribution,
-        TextRange(start: selection.start, end: selection.end),
-      );
-    }
-
-    notifyListeners();
-  }
-
-  /// Removes all attributions from the text that is currently selected.
-  void clearSelectionAttributions() {
-    if (selection.isCollapsed) {
-      return;
-    }
-
-    _text.clearAttributions(
-      TextRange(start: selection.start, end: selection.end),
-    );
-
-    notifyListeners();
-  }
-
-  TextRange _composingRegion;
-  TextRange get composingRegion => _composingRegion;
-  set composingRegion(TextRange newValue) {
-    if (newValue != _composingRegion) {
-      _composingRegion = newValue;
-      notifyListeners();
-    }
   }
 
   TextSpan buildTextSpan(AttributionStyleBuilder styleBuilder) {

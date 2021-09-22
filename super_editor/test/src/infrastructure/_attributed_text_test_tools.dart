@@ -54,6 +54,9 @@ class ExpectedSpans {
             throw Exception('Unknown span template character: $attributionName');
         }
 
+        if (!spans.hasAttributionAt(characterIndex, attribution: namedAttribution)) {
+          print("SPAN MISMATCH: missing $namedAttribution at $characterIndex");
+        }
         expect(spans.hasAttributionAt(characterIndex, attribution: namedAttribution), true);
       }
     }

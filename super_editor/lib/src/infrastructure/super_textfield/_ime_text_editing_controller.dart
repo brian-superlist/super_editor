@@ -28,7 +28,7 @@ final _log = imeTextFieldLog;
 /// `detachFromIme`.
 class ImeAttributedTextEditingController
     with ChangeNotifier
-    implements AttributedTextEditingController, TextInputClient {
+    implements AttributedTextEditingController, DeltaTextInputClient {
   ImeAttributedTextEditingController({
     final AttributedTextEditingController? controller,
   }) : _realController = controller ?? AttributedTextEditingController() {
@@ -69,6 +69,7 @@ class ImeAttributedTextEditingController
     _inputConnection!
       ..show()
       ..setEditingState(currentTextEditingValue!);
+    _log.fine('Is attached to input client? ${_inputConnection!.attached}');
   }
 
   void updateTextInputConfiguration({
@@ -99,6 +100,7 @@ class ImeAttributedTextEditingController
   }
 
   void detachFromIme() {
+    _log.fine('Closing input connection');
     _inputConnection?.close();
   }
 
@@ -169,8 +171,8 @@ class ImeAttributedTextEditingController
 
   @override
   void updateEditingValue(TextEditingValue value) {
-    _onReceivedTextEditingValueFromPlatform(value);
     _log.fine('New platform TextEditingValue: $value');
+    _onReceivedTextEditingValueFromPlatform(value);
 
     if (_latestPlatformTextEditingValue != currentTextEditingValue) {
       _sendTextChangesToPlatform = false;
@@ -184,9 +186,7 @@ class ImeAttributedTextEditingController
   @override
   void updateEditingValueWithDeltas(List<TextEditingDelta> deltas) {
     _log.fine('Received text editing deltas from platform...');
-
-    if (deltas.isEmpty || deltas.where((element) => element.deltaType != TextEditingDeltaType.equality).isEmpty) {
-      _log.fine(' - there are no deltas, or all deltas are equality. Ignoring.');
+    if (deltas.isEmpty) {
       return;
     }
 
@@ -195,34 +195,47 @@ class ImeAttributedTextEditingController
     _sendTextChangesToPlatform = false;
 
     for (final delta in deltas) {
-      _log.fine(
-          'Text delta: ${delta.deltaType}, range: ${delta.deltaRange}, new selection: ${delta.selection}, new composing: ${delta.composing}');
-      switch (delta.deltaType) {
-        case TextEditingDeltaType.insertion:
+      if (delta is TextEditingDeltaInsertion) {
+        _log.fine('Processing insertion: $delta');
+        if (selection.isCollapsed && delta.insertionOffset == selection.extentOffset) {
+          // This action appears to be user input at the caret.
+          insertAtCaret(
+            text: delta.textInserted,
+          );
+        } else {
+          // We're not sure what this action represents. Either the current selection
+          // isn't collapsed, or this insertion is taking place at a location other than
+          // where the caret currently sits. Insert the content, applying upstream styles,
+          // and then push/expand the current selection as needed around the new content.
           insert(
-            newText: delta.deltaText,
-            insertIndex: delta.deltaRange.start,
-            newSelection: delta.selection,
+            newText: AttributedText(
+              text: delta.textInserted,
+            ),
+            insertIndex: delta.insertionOffset,
           );
-          break;
-        case TextEditingDeltaType.deletion:
-          delete(
-            from: delta.deltaRange.start,
-            to: delta.deltaRange.end,
-            newSelection: delta.selection,
-          );
-          break;
-        case TextEditingDeltaType.replacement:
-          replace(
-            newText: AttributedText(text: delta.deltaText),
-            from: delta.deltaRange.start,
-            to: delta.deltaRange.end,
-            newSelection: delta.selection,
-          );
-          break;
-        case TextEditingDeltaType.equality:
-          // no-op
-          break;
+        }
+      } else if (delta is TextEditingDeltaDeletion) {
+        _log.fine('Processing deletion: $delta');
+        delete(
+          from: delta.deletedRange.start,
+          to: delta.deletedRange.end,
+          newSelection: delta.selection,
+          newComposingRegion: delta.composing,
+        );
+      } else if (delta is TextEditingDeltaReplacement) {
+        _log.fine('Processing replacement: $delta');
+        replace(
+          newText: AttributedText(text: delta.replacementText),
+          from: delta.replacedRange.start,
+          to: delta.replacedRange.end,
+          newSelection: delta.selection,
+        );
+      } else if (delta is TextEditingDeltaNonTextUpdate) {
+        _log.fine('Processing selection/composing change: $delta');
+        update(
+          selection: delta.selection,
+          composingRegion: delta.composing,
+        );
       }
     }
 
@@ -278,9 +291,9 @@ class ImeAttributedTextEditingController
   set selection(TextSelection newValue) => _realController.selection = newValue;
 
   @override
-  List<Attribution> get composingAttributions => _realController.composingAttributions;
+  Set<Attribution> get composingAttributions => _realController.composingAttributions;
   @override
-  set composingAttributions(List<Attribution> attributions) => _realController.composingAttributions = attributions;
+  set composingAttributions(Set<Attribution> attributions) => _realController.composingAttributions = attributions;
 
   @override
   TextRange get composingRegion => _realController.composingRegion;
@@ -288,8 +301,51 @@ class ImeAttributedTextEditingController
   set composingRegion(TextRange newValue) => _realController.composingRegion = newValue;
 
   @override
+  void updateTextAndSelection({required AttributedText text, required TextSelection selection}) {
+    _realController.updateTextAndSelection(
+      text: text,
+      selection: selection,
+    );
+  }
+
+  @override
+  bool isSelectionWithinTextBounds(TextSelection selection) {
+    return _realController.isSelectionWithinTextBounds(selection);
+  }
+
+  @override
+  void toggleSelectionAttributions(List<Attribution> attributions) {
+    _realController.toggleSelectionAttributions(attributions);
+  }
+
+  @override
+  void clearSelectionAttributions() {
+    _realController.clearSelectionAttributions();
+  }
+
+  @override
+  void addComposingAttributions(Set<Attribution> attributions) {
+    _realController.addComposingAttributions(attributions);
+  }
+
+  @override
+  void removeComposingAttributions(Set<Attribution> attributions) {
+    _realController.removeComposingAttributions(attributions);
+  }
+
+  @override
+  void toggleComposingAttributions(Set<Attribution> attributions) {
+    _realController.toggleComposingAttributions(attributions);
+  }
+
+  @override
+  void clearComposingAttributions() {
+    _realController.clearComposingAttributions();
+  }
+
+  @override
   void insert({
-    required String newText,
+    required AttributedText newText,
     required int insertIndex,
     TextSelection? newSelection,
     TextRange? newComposingRegion,
@@ -303,16 +359,61 @@ class ImeAttributedTextEditingController
   }
 
   @override
-  void insertAttributedText({
-    required AttributedText newText,
-    required int insertIndex,
-    TextSelection? newSelection,
+  void insertAtCaret({required String text, TextRange? newComposingRegion}) {
+    _realController.insertAtCaret(
+      text: text,
+      newComposingRegion: newComposingRegion,
+    );
+  }
+
+  @override
+  void insertAtCaretUnstyled({required String text, TextRange? newComposingRegion}) {
+    _realController.insertAtCaretUnstyled(
+      text: text,
+      newComposingRegion: newComposingRegion,
+    );
+  }
+
+  @override
+  void insertAtCaretWithUpstreamAttributions({required String text, TextRange? newComposingRegion}) {
+    _realController.insertAtCaretWithUpstreamAttributions(
+      text: text,
+      newComposingRegion: newComposingRegion,
+    );
+  }
+
+  @override
+  void insertAttributedTextAtCaret({required AttributedText attributedText, TextRange? newComposingRegion}) {
+    _realController.insertAttributedTextAtCaret(
+      attributedText: attributedText,
+      newComposingRegion: newComposingRegion,
+    );
+  }
+
+  @override
+  void replaceSelectionWithAttributedText({
+    required AttributedText attributedReplacementText,
     TextRange? newComposingRegion,
   }) {
-    _realController.insertAttributedText(
-      newText: newText,
-      insertIndex: insertIndex,
-      newSelection: newSelection,
+    _realController.replaceSelectionWithAttributedText(
+      attributedReplacementText: attributedReplacementText,
+      newComposingRegion: newComposingRegion,
+    );
+  }
+
+  @override
+  void replaceSelectionWithTextAndUpstreamAttributions(
+      {required String replacementText, TextRange? newComposingRegion}) {
+    _realController.replaceSelectionWithTextAndUpstreamAttributions(
+      replacementText: replacementText,
+      newComposingRegion: newComposingRegion,
+    );
+  }
+
+  @override
+  void replaceSelectionWithUnstyledText({required String replacementText, TextRange? newComposingRegion}) {
+    _realController.replaceSelectionWithUnstyledText(
+      replacementText: replacementText,
       newComposingRegion: newComposingRegion,
     );
   }
@@ -345,46 +446,27 @@ class ImeAttributedTextEditingController
   }
 
   @override
-  void updateTextAndSelection({required AttributedText text, required TextSelection selection}) {
-    _realController.updateTextAndSelection(
+  void deleteNextCharacter({TextRange? newComposingRegion}) {
+    _realController.deleteNextCharacter(newComposingRegion: newComposingRegion);
+  }
+
+  @override
+  void deletePreviousCharacter({TextRange? newComposingRegion}) {
+    _realController.deletePreviousCharacter(newComposingRegion: newComposingRegion);
+  }
+
+  @override
+  void deleteSelection({TextRange? newComposingRegion}) {
+    _realController.deleteSelection(newComposingRegion: newComposingRegion);
+  }
+
+  @override
+  void update({AttributedText? text, TextSelection? selection, TextRange? composingRegion}) {
+    _realController.update(
       text: text,
       selection: selection,
+      composingRegion: composingRegion,
     );
-  }
-
-  @override
-  bool isSelectionWithinTextBounds(TextSelection selection) {
-    return _realController.isSelectionWithinTextBounds(selection);
-  }
-
-  @override
-  void toggleSelectionAttributions(List<Attribution> attributions) {
-    _realController.toggleSelectionAttributions(attributions);
-  }
-
-  @override
-  void clearSelectionAttributions() {
-    _realController.clearSelectionAttributions();
-  }
-
-  @override
-  void addComposingAttributions(List<Attribution> attributions) {
-    _realController.addComposingAttributions(attributions);
-  }
-
-  @override
-  void removeComposingAttributions(List<Attribution> attributions) {
-    _realController.removeComposingAttributions(attributions);
-  }
-
-  @override
-  void toggleComposingAttributions(List<Attribution> attributions) {
-    _realController.toggleComposingAttributions(attributions);
-  }
-
-  @override
-  void clearComposingAttributions() {
-    _realController.clearComposingAttributions();
   }
 
   @override

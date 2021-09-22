@@ -1,4 +1,5 @@
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 
 /// Contract to interrogate the layout of a blob of text.
 abstract class TextLayout {
@@ -127,15 +128,23 @@ TextSelection paragraphExpansionFilter(String text, TextPosition startingPositio
 /// visual character. The [String] index of the final code point for
 /// the given character is returned.
 int getCharacterEndBounds(String text, int startingCodePointIndex) {
+  // This implementation was copied and adapted from text_editing_action_target
+  // in the Flutter repo.
   assert(startingCodePointIndex >= 0 && startingCodePointIndex <= text.length);
 
-  // TODO: copy the implementation of nextCharacter to this package because
-  //       it's marked as visible for testing
-  // ignore: invalid_use_of_visible_for_testing_member
-  final startOffset =
-      // ignore: invalid_use_of_visible_for_testing_member
-      RenderEditable.nextCharacter(startingCodePointIndex, text);
-  return startOffset;
+  if (startingCodePointIndex == text.length) {
+    return text.length;
+  }
+
+  final CharacterRange range = CharacterRange.at(text, 0, startingCodePointIndex);
+  // If index is not on a character boundary, return the next character
+  // boundary.
+  if (range.current.length != startingCodePointIndex) {
+    return range.current.length;
+  }
+
+  range.expandNext();
+  return range.current.length;
 }
 
 /// Returns the code point index for the code point that begins the visual
@@ -154,13 +163,22 @@ int getCharacterEndBounds(String text, int startingCodePointIndex) {
 /// visual character. The [String] index of the initial code point for
 /// the given character is returned.
 int getCharacterStartBounds(String text, int endingCodePointIndex) {
+  // This implementation was copied and adapted from text_editing_action_target
+  // in the Flutter repo.
   assert(endingCodePointIndex >= 0 && endingCodePointIndex <= text.length);
 
-  // TODO: copy the implementation of previousCharacter to this package because
-  //       it's marked as visible for testing
-  // ignore: invalid_use_of_visible_for_testing_member
-  final startOffset =
-      // ignore: invalid_use_of_visible_for_testing_member
-      RenderEditable.previousCharacter(endingCodePointIndex, text);
-  return startOffset;
+  if (endingCodePointIndex == 0) {
+    return 0;
+  }
+
+  final CharacterRange range = CharacterRange.at(text, 0, endingCodePointIndex);
+  // If index is not on a character boundary, return the previous character
+  // boundary.
+  if (range.current.length != endingCodePointIndex) {
+    range.dropLast();
+    return range.current.length;
+  }
+
+  range.dropLast();
+  return range.current.length;
 }

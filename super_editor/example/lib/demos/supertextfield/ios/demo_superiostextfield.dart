@@ -14,12 +14,12 @@ class _SuperIOSTextFieldDemoState extends State<SuperIOSTextFieldDemo> {
   @override
   void initState() {
     super.initState();
-    initLoggers(Level.FINE, {iosTextFieldLog, imeTextFieldLog, attributionsLog});
+    initLoggers(Level.FINE, {iosTextFieldLog, imeTextFieldLog});
   }
 
   @override
   void dispose() {
-    deactivateLoggers({iosTextFieldLog, imeTextFieldLog, attributionsLog});
+    deactivateLoggers({iosTextFieldLog, imeTextFieldLog});
     super.dispose();
   }
 

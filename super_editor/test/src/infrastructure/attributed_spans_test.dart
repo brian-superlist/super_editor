@@ -1,11 +1,14 @@
-import 'package:super_editor/src/default_editor/attributions.dart';
-import 'package:super_editor/src/infrastructure/attributed_spans.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:logging/logging.dart';
+import 'package:super_editor/src/default_editor/attributions.dart';
+import 'package:super_editor/src/infrastructure/_logging.dart';
+import 'package:super_editor/src/infrastructure/attributed_spans.dart';
 
+import '../../test_tools.dart';
 import '_attributed_text_test_tools.dart';
 
 void main() {
-  group('Spans', () {
+  groupWithLogging('Spans', Level.OFF, {attributionsLog}, () {
     group('attribution queries', () {
       test('it expands a span from a given offset', () {
         final spans = AttributedSpans()..addAttribution(newAttribution: boldAttribution, start: 3, end: 16);
@@ -200,6 +203,101 @@ void main() {
         )..removeAttribution(attributionToRemove: boldAttribution, start: 0, end: 16);
 
         expect(spans.hasAttributionsWithin(attributions: {boldAttribution}, start: 0, end: 16), false);
+      });
+
+      test('removes attribution from single unit', () {
+        final spans = AttributedSpans(
+          attributions: [
+            const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.start),
+            const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end)
+          ],
+        );
+
+        ExpectedSpans([
+          '________b_______',
+        ]).expectSpans(spans);
+
+        spans.removeAttribution(attributionToRemove: boldAttribution, start: 8, end: 8);
+
+        ExpectedSpans([
+          '________________',
+        ]).expectSpans(spans);
+      });
+
+      test('removes attribution from single unit at end of span', () {
+        final spans = AttributedSpans(
+          attributions: [
+            const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+            const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end)
+          ],
+        );
+
+        ExpectedSpans([
+          'bbbbbbbb_______',
+        ]).expectSpans(spans);
+
+        spans.removeAttribution(attributionToRemove: boldAttribution, start: 8, end: 8);
+
+        ExpectedSpans([
+          'bbbbbbb_________',
+        ]).expectSpans(spans);
+      });
+
+      test('removes attribution from all units except the last', () {
+        final spans = AttributedSpans(
+          attributions: [
+            const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+            const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end)
+          ],
+        );
+
+        ExpectedSpans([
+          'bbbbbbbb_______',
+        ]).expectSpans(spans);
+
+        spans.removeAttribution(attributionToRemove: boldAttribution, start: 0, end: 7);
+
+        ExpectedSpans([
+          '________b________',
+        ]).expectSpans(spans);
+      });
+
+      test('removes attribution from single unit at start of span', () {
+        final spans = AttributedSpans(
+          attributions: [
+            const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+            const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end)
+          ],
+        );
+
+        ExpectedSpans([
+          'bbbbbbbb_______',
+        ]).expectSpans(spans);
+
+        spans.removeAttribution(attributionToRemove: boldAttribution, start: 0, end: 0);
+
+        ExpectedSpans([
+          '_bbbbbbb_______',
+        ]).expectSpans(spans);
+      });
+
+      test('removes attribution from all units except the first', () {
+        final spans = AttributedSpans(
+          attributions: [
+            const SpanMarker(attribution: boldAttribution, offset: 0, markerType: SpanMarkerType.start),
+            const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end)
+          ],
+        );
+
+        ExpectedSpans([
+          'bbbbbbbb_______',
+        ]).expectSpans(spans);
+
+        spans.removeAttribution(attributionToRemove: boldAttribution, start: 1, end: 8);
+
+        ExpectedSpans([
+          'b________________',
+        ]).expectSpans(spans);
       });
 
       test('removes attribution from inner text span', () {

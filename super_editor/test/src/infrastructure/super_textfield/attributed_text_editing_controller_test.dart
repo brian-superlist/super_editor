@@ -11,10 +11,173 @@ void main() {
   // TODO: handle selection changes.
 
   group('AttributedTextEditingController', () {
+    group('user', () {
+      test('types hello **world** into empty field', () {
+        final controller = AttributedTextEditingController(
+          selection: const TextSelection.collapsed(offset: 0),
+        )
+          ..insertAtCaret(text: 'H')
+          ..insertAtCaret(text: 'e')
+          ..insertAtCaret(text: 'l')
+          ..insertAtCaret(text: 'l')
+          ..insertAtCaret(text: 'o')
+          ..insertAtCaret(text: ' ')
+          ..addComposingAttributions({boldAttribution})
+          ..insertAtCaret(text: 'W')
+          ..insertAtCaret(text: 'o')
+          ..insertAtCaret(text: 'r')
+          ..insertAtCaret(text: 'l')
+          ..insertAtCaret(text: 'd');
+
+        expect(controller.text.text, equals('Hello World'));
+        ExpectedSpans([
+          '______bbbbb',
+        ]).expectSpans(controller.text.spans);
+      });
+
+      test('types new text in the middle of styled text', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: 'before [] after',
+            spans: AttributedSpans(
+              attributions: [
+                const SpanMarker(attribution: boldAttribution, offset: 7, markerType: SpanMarkerType.start),
+                const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
+              ],
+            ),
+          ),
+        )
+          ..selection = const TextSelection.collapsed(offset: 8)
+          ..insertAtCaret(text: 'b');
+
+        expect(controller.text.text, equals('before [b] after'));
+        expect(controller.selection, equals(const TextSelection.collapsed(offset: 9)));
+        ExpectedSpans([
+          '_______bbb______',
+        ]).expectSpans(controller.text.spans);
+      });
+
+      test('types batch of new text in the middle of styled text', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: 'before [] after',
+            spans: AttributedSpans(
+              attributions: [
+                const SpanMarker(attribution: boldAttribution, offset: 7, markerType: SpanMarkerType.start),
+                const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
+              ],
+            ),
+          ),
+        )
+          ..selection = const TextSelection.collapsed(offset: 8)
+          ..insertAtCaret(text: 'hello');
+
+        expect(controller.text.text, equals('before [hello] after'));
+        expect(controller.selection, equals(const TextSelection.collapsed(offset: 13)));
+        ExpectedSpans([
+          '_______bbbbbbb______',
+        ]).expectSpans(controller.text.spans);
+      });
+
+      test('types unstyled text in the middle of styled text', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: 'before [] after',
+            spans: AttributedSpans(
+              attributions: [
+                const SpanMarker(attribution: boldAttribution, offset: 7, markerType: SpanMarkerType.start),
+                const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
+              ],
+            ),
+          ),
+        )
+          ..selection = const TextSelection.collapsed(offset: 8)
+          ..clearComposingAttributions()
+          ..insertAtCaret(text: 'b');
+
+        expect(controller.text.text, equals('before [b] after'));
+        ExpectedSpans([
+          '_______b_b______',
+        ]).expectSpans(controller.text.spans);
+      });
+
+      test('clears composing attributions by deleting all styled text', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: 'before [] after',
+            spans: AttributedSpans(
+              attributions: [
+                const SpanMarker(attribution: boldAttribution, offset: 7, markerType: SpanMarkerType.start),
+                const SpanMarker(attribution: boldAttribution, offset: 8, markerType: SpanMarkerType.end),
+              ],
+            ),
+          ),
+        )..selection = const TextSelection.collapsed(offset: 9);
+        expect(controller.composingAttributions, equals({boldAttribution}));
+
+        controller.deletePreviousCharacter();
+        expect(controller.composingAttributions, equals({boldAttribution}));
+
+        controller.deletePreviousCharacter();
+        expect(controller.composingAttributions.isEmpty, isTrue);
+      });
+
+      test('tries to delete previous character at beginning of text', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: 'some text',
+          ),
+        )
+          ..selection = const TextSelection.collapsed(offset: 0)
+          ..deletePreviousCharacter();
+
+        expect(controller.text.text, equals('some text'));
+      });
+
+      test('deletes first character in text', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: 'some text',
+          ),
+        )
+          ..selection = const TextSelection.collapsed(offset: 1)
+          ..deletePreviousCharacter();
+
+        expect(controller.text.text, equals('ome text'));
+        expect(controller.selection, equals(const TextSelection.collapsed(offset: 0)));
+      });
+
+      test('tries to delete next character at end of text', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: 'some text',
+          ),
+        )
+          ..selection = const TextSelection.collapsed(offset: 9)
+          ..deleteNextCharacter();
+
+        expect(controller.text.text, equals('some text'));
+      });
+
+      test('deletes last character in text', () {
+        final controller = AttributedTextEditingController(
+          text: AttributedText(
+            text: 'some text',
+          ),
+        )
+          ..selection = const TextSelection.collapsed(offset: 8)
+          ..deleteNextCharacter();
+
+        expect(controller.text.text, equals('some tex'));
+        expect(controller.selection, equals(const TextSelection.collapsed(offset: 8)));
+      });
+    });
+
     group('insert', () {
       test('into empty text', () {
-        final controller = AttributedTextEditingController();
-        controller.insert(newText: 'newtext', insertIndex: 0);
+        final controller = AttributedTextEditingController(
+          selection: const TextSelection.collapsed(offset: 0),
+        )..insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('newtext'));
       });
@@ -23,7 +186,7 @@ void main() {
         final controller = AttributedTextEditingController(
           selection: const TextSelection.collapsed(offset: 0),
         );
-        controller.insert(newText: 'newtext', insertIndex: 0);
+        controller.insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('newtext'));
         expect(controller.selection, equals(const TextSelection.collapsed(offset: 7)));
@@ -32,24 +195,25 @@ void main() {
       test('into start of existing text', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: ':existing text'),
+          selection: const TextSelection.collapsed(offset: 0),
         );
-        controller.insert(newText: 'newtext', insertIndex: 0);
+        controller.insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('newtext:existing text'));
       });
 
-      test('into start of existing text with caret', () {
+      test('into start of existing text and pushes caret back', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: ':existing text'),
-          selection: const TextSelection.collapsed(offset: 1),
+          selection: const TextSelection.collapsed(offset: 0),
         );
-        controller.insert(newText: 'newtext', insertIndex: 0);
+        controller.insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('newtext:existing text'));
-        expect(controller.selection, equals(const TextSelection.collapsed(offset: 8)));
+        expect(controller.selection, equals(const TextSelection.collapsed(offset: 7)));
       });
 
-      test('into start of existing text with selection after insertion', () {
+      test('into start of existing text and pushes selection back', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: ':existing text'),
           selection: const TextSelection(
@@ -57,7 +221,7 @@ void main() {
             extentOffset: 9,
           ),
         );
-        controller.insert(newText: 'newtext', insertIndex: 0);
+        controller.insert(newText: AttributedText(text: 'newtext'), insertIndex: 0);
 
         expect(controller.text.text, equals('newtext:existing text'));
         expect(
@@ -71,7 +235,7 @@ void main() {
         );
       });
 
-      test('into start of existing text with selection at insertion', () {
+      test('into start of existing text and expands existing selection', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: ':existing text'),
           selection: const TextSelection(
@@ -79,7 +243,7 @@ void main() {
             extentOffset: 9,
           ),
         );
-        controller.insert(newText: 'newtext', insertIndex: 0);
+        controller.insert(newText: AttributedText(text: 'newtext'), insertIndex: 0);
 
         expect(controller.text.text, equals('newtext:existing text'));
         expect(
@@ -96,29 +260,30 @@ void main() {
       test('into end of existing text', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: 'existing text:'),
+          selection: const TextSelection.collapsed(offset: 14),
         );
-        controller.insert(newText: 'newtext', insertIndex: 14);
+        controller.insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('existing text:newtext'));
       });
 
-      test('into end of existing text with caret', () {
+      test('into end of existing text with caret before inserted text', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: 'existing text:'),
-          selection: const TextSelection.collapsed(offset: 9),
+          selection: const TextSelection.collapsed(offset: 14),
         );
-        controller.insert(newText: 'newtext', insertIndex: 14);
+        controller.insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('existing text:newtext'));
-        expect(controller.selection, equals(const TextSelection.collapsed(offset: 9)));
+        expect(controller.selection, equals(const TextSelection.collapsed(offset: 21)));
       });
 
-      test('into end of existing text with selection', () {
+      test('into end of existing text with selection before inserted text', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: 'existing text:'),
           selection: const TextSelection(baseOffset: 0, extentOffset: 8),
         );
-        controller.insert(newText: 'newtext', insertIndex: 14);
+        controller.insert(newText: AttributedText(text: 'newtext'), insertIndex: 14);
 
         expect(controller.text.text, equals('existing text:newtext'));
         expect(
@@ -139,7 +304,7 @@ void main() {
           ),
           selection: const TextSelection.collapsed(offset: 1),
         );
-        controller.insert(newText: 'newtext', insertIndex: 1);
+        controller.insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('[newtext]:existing text'));
         expect(controller.selection, equals(const TextSelection.collapsed(offset: 8)));
@@ -155,7 +320,7 @@ void main() {
             extentOffset: 2,
           ),
         );
-        controller.insert(newText: 'newtext', insertIndex: 1);
+        controller.insert(newText: AttributedText(text: 'newtext'), insertIndex: 1);
 
         expect(controller.text.text, equals('[newtext]:existing text'));
         expect(
@@ -179,7 +344,7 @@ void main() {
             extentOffset: 11,
           ),
         );
-        controller.insert(newText: 'newtext', insertIndex: 1);
+        controller.insert(newText: AttributedText(text: 'newtext'), insertIndex: 1);
 
         expect(controller.text.text, equals('[newtext]:existing text'));
         expect(
@@ -204,8 +369,9 @@ void main() {
               ],
             ),
           ),
+          selection: const TextSelection.collapsed(offset: 0),
         );
-        controller.insert(newText: 'newtext', insertIndex: 0);
+        controller.insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('newtext[]:unstyled text'));
         ExpectedSpans([
@@ -224,8 +390,9 @@ void main() {
               ],
             ),
           ),
+          selection: const TextSelection.collapsed(offset: 1),
         );
-        controller.insert(newText: 'newtext', insertIndex: 1);
+        controller.insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('[newtext]:unstyled text'));
         ExpectedSpans([
@@ -244,8 +411,9 @@ void main() {
               ],
             ),
           ),
+          selection: const TextSelection.collapsed(offset: 1),
         );
-        controller.insert(newText: 'newtext', insertIndex: 1);
+        controller.insertAtCaret(text: 'newtext');
 
         expect(controller.text.text, equals('[newtext]:unstyled text'));
         ExpectedSpans([
@@ -258,6 +426,7 @@ void main() {
       test('empty text with new text at beginning', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: ':existing text'),
+          selection: const TextSelection.collapsed(offset: 0),
         );
         controller.replace(newText: AttributedText(text: 'newtext'), from: 0, to: 0);
 
@@ -287,33 +456,40 @@ void main() {
       test('text with empty text at beginning', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: 'deleteme:existing text'),
+          selection: const TextSelection.collapsed(offset: 0),
         );
         controller.replace(newText: AttributedText(text: ''), from: 0, to: 8);
 
         expect(controller.text.text, equals(':existing text'));
+        expect(controller.selection, equals(const TextSelection.collapsed(offset: 0)));
       });
 
       test('text at beginning', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: 'replaceme:existing text'),
+          selection: const TextSelection(baseOffset: 0, extentOffset: 9),
         );
         controller.replace(newText: AttributedText(text: 'newtext'), from: 0, to: 9);
 
         expect(controller.text.text, equals('newtext:existing text'));
+        expect(controller.selection, equals(const TextSelection.collapsed(offset: 7)));
       });
 
       test('text at end', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: 'existing text:replaceme'),
+          selection: const TextSelection(baseOffset: 14, extentOffset: 23),
         );
         controller.replace(newText: AttributedText(text: 'newtext'), from: 14, to: 23);
 
         expect(controller.text.text, equals('existing text:newtext'));
+        expect(controller.selection, equals(const TextSelection.collapsed(offset: 21)));
       });
 
       test('text in the middle', () {
         final controller = AttributedTextEditingController(
           text: AttributedText(text: '[replaceme]'),
+          selection: const TextSelection(baseOffset: 1, extentOffset: 10),
         );
         controller.replace(newText: AttributedText(text: 'newtext'), from: 1, to: 10);
 
