@@ -55,16 +55,16 @@ class AndroidTextFieldTouchInteractor extends StatefulWidget {
     required this.child,
   }) : super(key: key);
 
-  /// [FocusNode] for the text field that contains this [IOSTextFieldInteractor].
+  /// [FocusNode] for the text field that contains this [AndroidTextFieldInteractor].
   ///
-  /// [IOSTextFieldInteractor] only shows editing controls, and listens for drag
+  /// [AndroidTextFieldInteractor] only shows editing controls, and listens for drag
   /// events when [focusNode] has focus.
   ///
-  /// [IOSTextFieldInteractor] requests focus when the user taps on it.
+  /// [AndroidTextFieldInteractor] requests focus when the user taps on it.
   final FocusNode focusNode;
 
   /// [LayerLink] that follows the text field that contains this
-  /// [IOSExtFieldInteractor].
+  /// [AndroidTextFieldInteractor].
   ///
   /// [textFieldLayerLink] is used to anchor the editing controls.
   final LayerLink textFieldLayerLink;
@@ -80,10 +80,10 @@ class AndroidTextFieldTouchInteractor extends StatefulWidget {
 
   /// [GlobalKey] that references the [SuperSelectableText] that lays out
   /// and renders the text within the text field that owns this
-  /// [IOSTextFieldInteractor].
+  /// [AndroidTextFieldInteractor].
   final GlobalKey<SuperSelectableTextState> selectableTextKey;
 
-  /// Whether the text field that owns this [IOSTextFieldInteractor] is
+  /// Whether the text field that owns this [AndroidTextFieldInteractor] is
   /// a multiline text field.
   final bool isMultiline;
 
@@ -155,7 +155,7 @@ class AndroidTextFieldTouchInteractorState extends State<AndroidTextFieldTouchIn
     if (tapTextPosition == null) {
       // This shouldn't be possible, but we'll ignore the tap if we can't
       // map it to a position within the text.
-      _log.warning('received a tap-down event on IOSTextFieldInteractor that is not on top of any text');
+      _log.warning('received a tap-down event on AndroidTextFieldInteractor that is not on top of any text');
       return;
     }
 
@@ -176,7 +176,7 @@ class AndroidTextFieldTouchInteractorState extends State<AndroidTextFieldTouchIn
     if (tapTextPosition == null) {
       // This shouldn't be possible, but we'll ignore the tap if we can't
       // map it to a position within the text.
-      _log.warning('received a tap-up event on IOSTextFieldInteractor that is not on top of any text');
+      _log.warning('received a tap-up event on AndroidTextFieldInteractor that is not on top of any text');
       return;
     }
 
@@ -343,7 +343,7 @@ class AndroidTextFieldTouchInteractorState extends State<AndroidTextFieldTouchIn
   }
 
   /// Returns the [TextPosition] sitting at the given [localOffset] within
-  /// this [IOSTextFieldInteractor].
+  /// this [AndroidTextFieldInteractor].
   TextPosition? _getTextPositionAtOffset(Offset localOffset) {
     // We show placeholder text when there is no text content. We don't want
     // to place the caret in the placeholder text, so when _currentText is

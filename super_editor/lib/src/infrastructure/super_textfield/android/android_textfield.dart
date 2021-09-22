@@ -126,7 +126,7 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield> with Sing
   final _textFieldKey = GlobalKey();
   final _textFieldLayerLink = LayerLink();
   final _textContentLayerLink = LayerLink();
-  final _scrollKey = GlobalKey<IOSTextFieldTouchInteractorState>();
+  final _scrollKey = GlobalKey<AndroidTextFieldTouchInteractorState>();
   final _textContentKey = GlobalKey<SuperSelectableTextState>();
 
   late FocusNode _focusNode;
@@ -298,13 +298,13 @@ class _SuperAndroidTextfieldState extends State<SuperAndroidTextfield> with Sing
     }
   }
 
-  /// Rebuilds the [IOSEditingControls] in the app's [Overlay], if
+  /// Rebuilds the [AndroidEditingControls] in the app's [Overlay], if
   /// they're currently displayed.
   void _rebuildEditingOverlayControls() {
     _controlsOverlayEntry?.markNeedsBuild();
   }
 
-  /// Removes [IOSEditingControls] from the app's [Overlay], if they're
+  /// Removes [AndroidEditingControls] from the app's [Overlay], if they're
   /// currently displayed.
   void _removeEditingOverlayControls() {
     if (_controlsOverlayEntry != null) {

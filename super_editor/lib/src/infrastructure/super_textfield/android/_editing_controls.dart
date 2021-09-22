@@ -21,7 +21,7 @@ final _log = androidTextFieldLog;
 ///
 /// The given [AndroidEditingOverlayController] controls the presentation
 /// of [AndroidEditingOverlayControls]. Use the controller to show/hide the
-/// iOS-style toolbar, magnifier, and expanded selection handles.
+/// Android-style toolbar, magnifier, and expanded selection handles.
 class AndroidEditingOverlayControls extends StatefulWidget {
   const AndroidEditingOverlayControls({
     Key? key,
