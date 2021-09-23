@@ -9,7 +9,7 @@ import 'package:super_editor/src/infrastructure/super_textfield/infrastructure/h
 import 'package:super_editor/src/infrastructure/super_textfield/infrastructure/text_scrollview.dart';
 import 'package:super_editor/super_editor.dart';
 
-import '../_ime_text_editing_controller.dart';
+import '../input_method_engine/_ime_text_editing_controller.dart';
 
 export '_caret.dart';
 export '_handles.dart';

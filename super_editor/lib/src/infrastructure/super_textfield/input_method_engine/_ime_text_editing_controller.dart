@@ -4,7 +4,7 @@ import 'package:super_editor/src/infrastructure/attributed_spans.dart';
 import 'package:super_editor/src/infrastructure/attributed_text.dart';
 import 'package:super_editor/src/infrastructure/super_textfield/super_textfield.dart';
 
-import '../_logging.dart';
+import '../../_logging.dart';
 
 final _log = imeTextFieldLog;
 

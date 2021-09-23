@@ -17,7 +17,7 @@ import 'package:super_editor/src/infrastructure/text_layout.dart';
 import '../attributed_text.dart';
 import '../keyboard.dart';
 import '../multi_tap_gesture.dart';
-export '_ime_text_editing_controller.dart';
+export 'input_method_engine/_ime_text_editing_controller.dart';
 
 final _log = textFieldLog;
 
