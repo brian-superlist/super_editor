@@ -104,10 +104,24 @@ class _IOSEditingControlsState extends State<IOSEditingControls> with WidgetsBin
     super.initState();
 
     WidgetsBinding.instance!.addObserver(this);
+
+    widget.editingController.textController.addListener(_rebuildOnNextFrame);
+  }
+
+  @override
+  void didUpdateWidget(IOSEditingControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (widget.editingController != oldWidget.editingController) {
+      oldWidget.editingController.textController.removeListener(_rebuildOnNextFrame);
+      widget.editingController.textController.addListener(_rebuildOnNextFrame);
+    }
   }
 
   @override
   void dispose() {
+    widget.editingController.textController.addListener(_rebuildOnNextFrame);
+
     WidgetsBinding.instance!.removeObserver(this);
 
     super.dispose();
@@ -123,6 +137,17 @@ class _IOSEditingControlsState extends State<IOSEditingControls> with WidgetsBin
         setState(() {
           // no-op
         });
+      }
+    });
+  }
+
+  void _rebuildOnNextFrame() {
+    // We request a rebuild at the end of this frame so that the editing
+    // controls update their position to reflect changes to text styling,
+    // e.g., text that gets wider because it was bolded.
+    WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
+      if (mounted) {
+        setState(() {});
       }
     });
   }
@@ -255,7 +280,6 @@ class _IOSEditingControlsState extends State<IOSEditingControls> with WidgetsBin
     return MultiListenableBuilder(
         listenables: {
           widget.editingController,
-          widget.editingController.textController,
         },
         builder: (context) {
           return Stack(
