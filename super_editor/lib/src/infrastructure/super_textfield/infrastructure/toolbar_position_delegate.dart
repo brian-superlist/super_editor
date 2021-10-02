@@ -6,8 +6,9 @@ import 'package:super_editor/src/infrastructure/_logging.dart';
 
 final _log = textFieldLog;
 
-/// A [SingleChildLayoutDelegate] that prevents its child from exceeding
-/// the screen boundaries.
+/// A [SingleChildLayoutDelegate] that interprets its child as a text editing
+/// toolbar and positions that toolbar either above [desiredTopAnchorInTextField],
+/// or below [desiredBottomAnchorInTextField].
 // TODO: offer optional padding from screen edges
 class ToolbarPositionDelegate extends SingleChildLayoutDelegate {
   ToolbarPositionDelegate({
@@ -16,8 +17,33 @@ class ToolbarPositionDelegate extends SingleChildLayoutDelegate {
     required this.desiredBottomAnchorInTextField,
   });
 
+  /// The global screen `Offset` of the text field, used to map local anchor
+  /// point `Offset`s to global screen coordinates.
   final Offset textFieldGlobalOffset;
+
+  /// The `Offset` within the text field, above which the toolbar positions
+  /// itself.
+  ///
+  /// If the toolbar can't fit above the `desiredTopAnchorInTextField` without
+  /// exceeding the available screen safe space, then the toolbar instead
+  /// positions itself below the [desiredBottomAnchorInTextField].
+  ///
+  /// The `desiredTopAnchorInTextField` typically differs from
+  /// [desiredBottomAnchorInTextField] because the top anchor `Offset`
+  /// sits on the top of a line of text, while the bottom anchor `Offset`
+  /// sits on the bottom of a line of text.
   final Offset desiredTopAnchorInTextField;
+
+  /// The `Offset` within the text field, below which the toolbar positions
+  /// itself.
+  ///
+  /// The toolbar is only positioned beneath `desiredBottomAnchorInTextField`
+  /// if the toolbar cannot fit above [desiredTopAnchorInTextField].
+  ///
+  /// The [desiredTopAnchorInTextField] typically differs from
+  /// `desiredBottomAnchorInTextField` because the top anchor `Offset`
+  /// sits on the top of a line of text, while the bottom anchor `Offset`
+  /// sits on the bottom of a line of text.
   final Offset desiredBottomAnchorInTextField;
 
   @override
@@ -29,8 +55,8 @@ class ToolbarPositionDelegate extends SingleChildLayoutDelegate {
 
     final desiredTopLeft = (desiredAnchor - Offset(childSize.width / 2, childSize.height)) + textFieldGlobalOffset;
 
-    double x = max(desiredTopLeft.dx, -textFieldGlobalOffset.dx);
-    x = min(x, size.width - childSize.width - textFieldGlobalOffset.dx);
+    double x = max(desiredTopLeft.dx, 0);
+    x = min(x, size.width - childSize.width);
 
     final constrainedOffset = Offset(x, desiredTopLeft.dy);
 
