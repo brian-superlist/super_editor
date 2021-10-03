@@ -101,14 +101,7 @@ class _MobileSuperTextFieldDemoState extends State<MobileSuperTextFieldDemo> {
                     child: Center(
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 48),
-                        child: SingleChildScrollView(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              widget.createTextField(_createDemoConfig()),
-                            ],
-                          ),
-                        ),
+                        child: widget.createTextField(_createDemoConfig()),
                       ),
                     ),
                   ),

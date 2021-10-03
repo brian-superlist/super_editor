@@ -157,10 +157,24 @@ class _TextScrollViewState extends State<TextScrollView>
   }
 
   @override
-  double get viewportWidth => (context.findRenderObject() as RenderBox).size.width;
+  double? get viewportWidth {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) {
+      return null;
+    }
+
+    return renderBox.size.width;
+  }
 
   @override
-  double get viewportHeight => (context.findRenderObject() as RenderBox).size.height;
+  double? get viewportHeight {
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) {
+      return null;
+    }
+
+    return renderBox.size.height;
+  }
 
   @override
   bool get isMultiline => widget.maxLines == null || widget.maxLines! > 1;
@@ -172,6 +186,11 @@ class _TextScrollViewState extends State<TextScrollView>
 
   @override
   double get endScrollOffset {
+    final viewportHeight = this.viewportHeight;
+    if (viewportHeight == null) {
+      return 0;
+    }
+
     final lastCharacterPosition = TextPosition(offset: widget.textEditingController.text.text.length - 1);
     return _text.getCharacterBox(lastCharacterPosition).bottom - viewportHeight;
   }
@@ -179,12 +198,22 @@ class _TextScrollViewState extends State<TextScrollView>
   @override
   bool isTextPositionVisible(TextPosition position) {
     if (isMultiline) {
+      final viewportHeight = this.viewportHeight;
+      if (viewportHeight == null) {
+        return false;
+      }
+
       final characterBox = _text.getCharacterBox(position);
       final scrolledCharacterTop = characterBox.top - _scrollController.offset;
       final scrolledCharacterBottom = characterBox.bottom - _scrollController.offset;
       // Round the top/bottom values to avoid false negatives due to floating point accuracy.
       return scrolledCharacterTop.round() >= 0 && scrolledCharacterBottom.round() <= viewportHeight;
     } else {
+      final viewportWidth = this.viewportWidth;
+      if (viewportWidth == null) {
+        return false;
+      }
+
       final offsetInViewport = _text.getOffsetAtPosition(position) - Offset(_scrollController.offset, 0);
       // Round the top/bottom values to avoid false negatives due to floating point accuracy.
       return offsetInViewport.dx.round() >= 0 && offsetInViewport.dx.round() <= viewportWidth;
@@ -203,8 +232,18 @@ class _TextScrollViewState extends State<TextScrollView>
   @override
   bool isInAutoScrollToEndRegion(Offset offsetInViewport) {
     if (isMultiline) {
+      final viewportHeight = this.viewportHeight;
+      if (viewportHeight == null) {
+        return false;
+      }
+
       return offsetInViewport.dy >= viewportHeight - _mulitlineFieldAutoScrollGap;
     } else {
+      final viewportWidth = this.viewportWidth;
+      if (viewportWidth == null) {
+        return false;
+      }
+
       return offsetInViewport.dx >= viewportWidth - _singleLineFieldAutoScrollGap;
     }
   }
@@ -249,12 +288,12 @@ class _TextScrollViewState extends State<TextScrollView>
 
   @override
   double getVerticalOffsetForBottomOfLineBelowViewport() {
-    if (_viewportHeight == null) {
+    if (viewportHeight == null) {
       _log.warning('Tried to calculate line below viewport but viewportHeight is null');
       return 0.0;
     }
 
-    final bottomOfLastLine = _viewportHeight! + _scrollController.offset;
+    final bottomOfLastLine = viewportHeight! + _scrollController.offset;
     // Note: we nudge the vertical offset down a few pixels to see if we
     // find a text position in the line below.
     final textPositionOneLineDown = _text.getPositionNearestToOffset(Offset(0, bottomOfLastLine + 5));
@@ -276,28 +315,34 @@ class _TextScrollViewState extends State<TextScrollView>
 
   /// Returns true if the viewport height changed, false otherwise.
   bool _updateViewportHeight() {
-    _log.fine('Updating viewport height...');
+    _log.finer('Updating viewport height...');
+
     final linesOfText = _getLineCount();
-    _log.fine(' - lines of text: $linesOfText');
+    _log.finer(' - lines of text: $linesOfText');
+
     final estimatedContentHeight = linesOfText * widget.lineHeight!;
-    _log.fine(' - estimated content height: $estimatedContentHeight');
+    _log.finer(' - estimated content height: $estimatedContentHeight');
+
     final minHeight = widget.minLines != null
         ? widget.minLines! * widget.lineHeight!
         : widget.lineHeight; // Can't be shorter than 1 line
-    final maxHeight = widget.maxLines != null ? widget.maxLines! * widget.lineHeight! : null;
-    _log.fine(' - minHeight: $minHeight, maxHeight: $maxHeight');
+    final maxHeight = widget.maxLines != null //
+        ? widget.maxLines! * widget.lineHeight! //
+        : null;
+    _log.finer(' - minHeight: $minHeight, maxHeight: $maxHeight');
+
     double? viewportHeight;
     if (maxHeight != null && estimatedContentHeight >= maxHeight) {
-      _log.fine(' - setting viewport height to maxHeight');
+      _log.finer(' - setting viewport height to maxHeight');
       viewportHeight = maxHeight;
     } else if (minHeight != null && estimatedContentHeight <= minHeight) {
-      _log.fine(' - setting viewport height to minheight');
+      _log.finer(' - setting viewport height to minHeight');
       viewportHeight = minHeight;
     }
 
     if (!_needViewportHeight && viewportHeight == _viewportHeight) {
       // The height of the viewport hasn't changed. Return.
-      _log.fine(' - viewport height hasn\'t changed');
+      _log.finer(' - viewport height hasn\'t changed');
       return false;
     }
 
@@ -305,7 +350,7 @@ class _TextScrollViewState extends State<TextScrollView>
       // We don't have a viewport height, but we're multiline and
       // unbounded so a null viewport height is fine. We'll wrap
       // the intrinsic height of the text.
-      _log.fine(' - viewport height is null, but TextScrollView is unbounded so that is OK');
+      _log.finer(' - viewport height is null, but TextScrollView is unbounded so that is OK');
       final didChange = viewportHeight != _viewportHeight;
       if (mounted) {
         setState(() {
@@ -318,14 +363,14 @@ class _TextScrollViewState extends State<TextScrollView>
 
     if (viewportHeight != null) {
       setState(() {
-        _log.fine(' - new viewport height: $viewportHeight');
+        _log.finer(' - new viewport height: $viewportHeight');
         _needViewportHeight = false;
         _viewportHeight = viewportHeight;
       });
 
       return true;
     } else {
-      _log.fine(' - could not calculate a viewport height. Rescheduling calculation.');
+      _log.finer(' - could not calculate a viewport height. Rescheduling calculation.');
 
       // We still don't have a resolved viewport height. Run again next frame.
       WidgetsBinding.instance!.addPostFrameCallback((timeStamp) {
@@ -504,6 +549,7 @@ class TextScrollController with ChangeNotifier {
 
     final startScrollOffset = _delegate!.startScrollOffset;
     if (_scrollOffset != startScrollOffset) {
+      _log.finer(' - updated _scrollOffset to $_scrollOffset');
       _scrollOffset = startScrollOffset;
       notifyListeners();
     }
@@ -519,6 +565,7 @@ class TextScrollController with ChangeNotifier {
 
     final endScrollOffset = _delegate!.endScrollOffset;
     if (_scrollOffset != endScrollOffset) {
+      _log.finer(' - updated _scrollOffset to $_scrollOffset');
       _scrollOffset = endScrollOffset;
       notifyListeners();
     }
@@ -646,8 +693,17 @@ class TextScrollController with ChangeNotifier {
       return;
     }
 
-    _log.fine('_autoScrollOneCharacterLeft. Scroll offset before: $scrollOffset');
-    _scrollOffset = _delegate!.getHorizontalOffsetForStartOfCharacterLeftOfViewport();
+    final horizontalOffsetForStartOfCharacterLeftOfViewport =
+        _delegate!.getHorizontalOffsetForStartOfCharacterLeftOfViewport();
+    if (horizontalOffsetForStartOfCharacterLeftOfViewport == null) {
+      _log.warning(
+          "Can't auto-scroll left. Couldn't calculate the horizontal offset for the first character beyond the viewport");
+      return;
+    }
+
+    _log.finer('_autoScrollOneCharacterLeft. Scroll offset before: $scrollOffset');
+    _scrollOffset = horizontalOffsetForStartOfCharacterLeftOfViewport;
+    _log.finer(' - _scrollOffset after: $_scrollOffset');
     _timeOfNextAutoScroll += _autoScrollTimePerCharacter;
 
     notifyListeners();
@@ -659,8 +715,23 @@ class TextScrollController with ChangeNotifier {
       return;
     }
 
-    _log.fine('Scrolling right');
-    _scrollOffset = _delegate!.getHorizontalOffsetForEndOfCharacterRightOfViewport() - _delegate!.viewportWidth;
+    final viewportWidth = _delegate!.viewportWidth;
+    if (viewportWidth == null) {
+      _log.warning("Can't auto-scroll right. Viewport width is null");
+      return;
+    }
+
+    final horizontalOffsetForEndOfCharacterRightOfViewport =
+        _delegate!.getHorizontalOffsetForEndOfCharacterRightOfViewport();
+    if (horizontalOffsetForEndOfCharacterRightOfViewport == null) {
+      _log.warning(
+          "Can't auto-scroll right. Couldn't calculate the horizontal offset for the first character beyond the viewport");
+      return;
+    }
+
+    _log.finer('Scrolling right');
+    _scrollOffset = horizontalOffsetForEndOfCharacterRightOfViewport - viewportWidth;
+    _log.finer(' - _scrollOffset after: $_scrollOffset');
     _timeOfNextAutoScroll += _autoScrollTimePerCharacter;
 
     notifyListeners();
@@ -674,16 +745,24 @@ class TextScrollController with ChangeNotifier {
       return;
     }
 
+    final viewportHeight = _delegate!.viewportHeight;
+    if (viewportHeight == null) {
+      _log.warning("Can't auto-scroll up. The viewport height is null");
+      return;
+    }
+
+    final verticalOffsetForTopOfLineAboveViewport = _delegate!.getVerticalOffsetForTopOfLineAboveViewport();
+    if (verticalOffsetForTopOfLineAboveViewport == null) {
+      _log.warning("Can't auto-scroll up. Couldn't calculate the offset for the line above the viewport");
+      return;
+    }
+
     _log.fine('Auto-scrolling one line up');
 
     _log.finer('Old offset: $_scrollOffset.');
-    _log.finer('Viewport height: ${_delegate!.viewportHeight}');
-    _log.finer(
-        'Vertical offset for top of line above viewport: ${_delegate!.getVerticalOffsetForTopOfLineAboveViewport()}');
-    final newOffset = _delegate!.getVerticalOffsetForTopOfLineAboveViewport();
-    _log.finer('New offset: $_scrollOffset');
-
-    _scrollOffset = newOffset;
+    _log.finer('Viewport height: $viewportHeight');
+    _log.finer('Vertical offset for top of line above viewport: $verticalOffsetForTopOfLineAboveViewport');
+    _scrollOffset = verticalOffsetForTopOfLineAboveViewport;
     _timeOfNextAutoScroll += _autoScrollTimePerLine;
     _log.fine('New scroll offset: $_scrollOffset, time of next scroll: $_timeOfNextAutoScroll');
 
@@ -698,16 +777,24 @@ class TextScrollController with ChangeNotifier {
       return;
     }
 
+    final viewportHeight = _delegate!.viewportHeight;
+    if (viewportHeight == null) {
+      _log.warning("Can't auto-scroll down. The viewport height is null");
+      return;
+    }
+
+    final verticalOffsetForBottomOfLineBelowViewport = _delegate!.getVerticalOffsetForBottomOfLineBelowViewport();
+    if (verticalOffsetForBottomOfLineBelowViewport == null) {
+      _log.warning("Can't auto-scroll down. Couldn't calculate the offset for the line below the viewport");
+      return;
+    }
+
     _log.fine('Auto-scrolling one line down');
 
     _log.finer('Old offset: $_scrollOffset.');
     _log.finer('Viewport height: ${_delegate!.viewportHeight}');
-    _log.finer(
-        'Vertical offset for bottom of line below viewport: ${_delegate!.getVerticalOffsetForBottomOfLineBelowViewport()}');
-    final newOffset = _delegate!.getVerticalOffsetForBottomOfLineBelowViewport() - _delegate!.viewportHeight;
-    _log.finer('New offset: $newOffset');
-
-    _scrollOffset = newOffset;
+    _log.finer('Vertical offset for bottom of line below viewport: $verticalOffsetForBottomOfLineBelowViewport');
+    _scrollOffset = verticalOffsetForBottomOfLineBelowViewport - viewportHeight;
     _timeOfNextAutoScroll += _autoScrollTimePerLine;
     _log.fine('New scroll offset: $_scrollOffset, time of next scroll: $_timeOfNextAutoScroll');
 
@@ -758,14 +845,17 @@ class TextScrollController with ChangeNotifier {
   void _ensureRectIsVisible(Rect rect) {
     assert(_delegate != null);
 
+    _log.finer('Ensuring rect is visible: $rect');
     if (rect.top < 0) {
       // The character is entirely or partially above the top of the viewport.
       // Scroll the content down.
       _scrollOffset = rect.top;
-    } else if (rect.bottom > _delegate!.viewportHeight) {
+      _log.finer(' - updated _scrollOffset to $_scrollOffset');
+    } else if (rect.bottom > _delegate!.viewportHeight!) {
       // The character is entirely or partially below the bottom of the viewport.
       // Scroll the content up.
-      _scrollOffset = rect.bottom - _delegate!.viewportHeight;
+      _scrollOffset = rect.bottom - _delegate!.viewportHeight!;
+      _log.finer(' - updated _scrollOffset to $_scrollOffset');
     }
 
     notifyListeners();
@@ -774,10 +864,10 @@ class TextScrollController with ChangeNotifier {
 
 abstract class TextScrollControllerDelegate {
   /// The width of the scrollable viewport.
-  double get viewportWidth;
+  double? get viewportWidth;
 
   /// The height of the scrollable viewport.
-  double get viewportHeight;
+  double? get viewportHeight;
 
   /// Whether the text in the scrollable area is displayed
   /// in a multi-line format (as opposed to single-line format).
@@ -803,13 +893,13 @@ abstract class TextScrollControllerDelegate {
   /// towards the end of the text.
   bool isInAutoScrollToEndRegion(Offset offsetInViewport);
 
-  double getHorizontalOffsetForStartOfCharacterLeftOfViewport();
+  double? getHorizontalOffsetForStartOfCharacterLeftOfViewport();
 
-  double getHorizontalOffsetForEndOfCharacterRightOfViewport();
+  double? getHorizontalOffsetForEndOfCharacterRightOfViewport();
 
-  double getVerticalOffsetForTopOfLineAboveViewport();
+  double? getVerticalOffsetForTopOfLineAboveViewport();
 
-  double getVerticalOffsetForBottomOfLineBelowViewport();
+  double? getVerticalOffsetForBottomOfLineBelowViewport();
 
   Rect getCharacterRectAtPosition(TextPosition position);
 }
