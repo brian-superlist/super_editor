@@ -1,4 +1,3 @@
-import 'package:super_editor/src/default_editor/paragraph.dart';
 import 'package:super_editor/src/default_editor/text.dart';
 import 'package:super_editor/src/infrastructure/super_selectable_text.dart';
 
@@ -179,7 +178,10 @@ class DocumentSelection {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is DocumentSelection && runtimeType == other.runtimeType && base == other.base && extent == other.extent;
+      other is DocumentSelection &&
+          runtimeType == other.runtimeType &&
+          base == other.base &&
+          extent == other.extent;
 
   @override
   int get hashCode => base.hashCode ^ extent.hashCode;
