@@ -1,4 +1,5 @@
 import 'package:example/demos/header_footer_use_case.dart';
+import 'package:example/demos/scrolling_performance_use_case.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -137,6 +138,13 @@ final _menu = <_MenuGroup>[
         title: 'Document with Widgets above and below',
         pageBuilder: (context) {
           return HeaderFooterUseCase();
+        },
+      ),
+      _MenuItem(
+        icon: Icons.description,
+        title: 'Long Document Scrolling Performance',
+        pageBuilder: (context) {
+          return ScrollingPerformanceUseCase();
         },
       ),
     ],
