@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'demos/header_footer_in_document_use_case.dart';
+
 /// Demo of a basic text editor, as well as various widgets that
 /// are available in this package.
 Future<void> main() async {
@@ -138,6 +140,13 @@ final _menu = <_MenuGroup>[
         title: 'Document with Widgets above and below',
         pageBuilder: (context) {
           return HeaderFooterUseCase();
+        },
+      ),
+      _MenuItem(
+        icon: Icons.description,
+        title: 'Header and Footer in Document with Text Fields',
+        pageBuilder: (context) {
+          return const HeaderFooterInDocumentUseCase();
         },
       ),
       _MenuItem(
