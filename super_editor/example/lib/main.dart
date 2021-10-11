@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'demos/compute_text_span_bug.dart';
 import 'demos/header_footer_in_document_use_case.dart';
 
 /// Demo of a basic text editor, as well as various widgets that
@@ -154,6 +155,13 @@ final _menu = <_MenuGroup>[
         title: 'Long Document Scrolling Performance',
         pageBuilder: (context) {
           return ScrollingPerformanceUseCase();
+        },
+      ),
+      _MenuItem(
+        icon: Icons.description,
+        title: 'ComputeTextSpanBug',
+        pageBuilder: (context) {
+          return ComputeTextSpanBug();
         },
       ),
     ],
