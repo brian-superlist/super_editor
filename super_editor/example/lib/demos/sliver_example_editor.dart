@@ -91,10 +91,6 @@ class _SliverExampleEditorState extends State<SliverExampleEditor> {
 Document _createInitialDocument() {
   return MutableDocument(
     nodes: [
-      ImageNode(
-        id: DocumentEditor.createNodeId(),
-        imageUrl: 'https://i.imgur.com/fSZwM7G.jpg',
-      ),
       ParagraphNode(
         id: DocumentEditor.createNodeId(),
         text: AttributedText(

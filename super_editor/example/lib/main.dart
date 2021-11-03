@@ -1,13 +1,14 @@
-import 'package:example/demos/demo_rtl.dart';
 import 'package:example/demos/demo_markdown_serialization.dart';
 import 'package:example/demos/demo_paragraphs.dart';
+import 'package:example/demos/demo_rtl.dart';
 import 'package:example/demos/demo_selectable_text.dart';
 import 'package:example/demos/example_editor/example_editor.dart';
 import 'package:example/demos/flutter_features/textinputclient/basic_text_input_client.dart';
-import 'package:example/demos/supertextfield/ios/demo_superiostextfield.dart';
 import 'package:example/demos/flutter_features/textinputclient/textfield.dart';
 import 'package:example/demos/sliver_example_editor.dart';
+import 'package:example/demos/sliver_stick_to_bottom_example.dart';
 import 'package:example/demos/supertextfield/demo_textfield.dart';
+import 'package:example/demos/supertextfield/ios/demo_superiostextfield.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -151,6 +152,13 @@ final _menu = <_MenuGroup>[
   _MenuGroup(
     title: 'Super Editor',
     items: [
+      _MenuItem(
+        icon: Icons.description,
+        title: 'Sliver Stick to bottom Demo',
+        pageBuilder: (context) {
+          return SliverStickToBottomUseCase();
+        },
+      ),
       _MenuItem(
         icon: Icons.description,
         title: 'Editor Demo',
@@ -363,10 +371,11 @@ class _DrawerButton extends StatelessWidget {
               return Colors.transparent;
             }),
             // splashFactory: NoSplash.splashFactory,
-            foregroundColor:
-                MaterialStateColor.resolveWith((states) => isSelected ? Colors.white : const Color(0xFFBBBBBB)),
+            foregroundColor: MaterialStateColor.resolveWith((states) =>
+                isSelected ? Colors.white : const Color(0xFFBBBBBB)),
             elevation: MaterialStateProperty.resolveWith((states) => 0),
-            padding: MaterialStateProperty.resolveWith((states) => const EdgeInsets.all(16))),
+            padding: MaterialStateProperty.resolveWith(
+                (states) => const EdgeInsets.all(16))),
         onPressed: isSelected ? null : onPressed,
         child: Row(
           children: [
